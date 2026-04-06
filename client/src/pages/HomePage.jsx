@@ -27,7 +27,7 @@ export default function HomePage() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="bg-white shadow-sm rounded-xl p-6 border">
-        <h1 className="text-2xl font-bold text-gray-800">Hello Home</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Hello World</h1>
         <p className="text-gray-600 mt-1">This is a minimal starter page.</p>
 
         <div className="mt-6 space-y-2">
