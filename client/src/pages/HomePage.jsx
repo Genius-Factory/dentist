@@ -14,7 +14,8 @@ export default function HomePage() {
     setError(null)
     setResult(null)
     try {
-      const res = await fetch(`${API_URL}/healthz`, { credentials: 'include' })
+      const url = new URL('/healthz', API_URL).toString()
+      const res = await fetch(url, { credentials: 'include' })
       const data = await res.json()
       setResult(data)
     } catch (e) {
