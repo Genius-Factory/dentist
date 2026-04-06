@@ -1,0 +1,3 @@
+# MCP server config contains secrets
+.vscode/mcp.json
+.claude
