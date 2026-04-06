@@ -2,16 +2,40 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const morgan = require('morgan');
 require('express-async-errors');
 
 const app = express();
 
 app.use(helmet());
-app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
+
+// Flexible CORS: support comma-separated CLIENT_URL and http/https hostname match
+const clientUrls = (process.env.CLIENT_URL || '').split(',').map(s => s.trim()).filter(Boolean);
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (clientUrls.length === 0) return callback(null, true);
+    if (clientUrls.includes(origin)) return callback(null, true);
+    try {
+      const reqHost = new URL(origin).host;
+      if (clientUrls.some(u => { try { return new URL(u).host === reqHost; } catch { return false; } })) {
+        return callback(null, true);
+      }
+    } catch {}
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
+// Basic request logging with user and origin context
+morgan.token('user', (req) => (req.auth?.userId ? `user:${req.auth.userId}` : 'user:-'));
+morgan.token('origin', (req) => (req.headers.origin || '-'));
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms :origin :user'));
+
 // Routes
-app.get('/healthz', async (req, res, next) => {
+const healthHandler = async (req, res, next) => {
   try {
     const db = require('./db');
     const result = await db.query('SELECT 1 as ok');
@@ -19,7 +43,9 @@ app.get('/healthz', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
+};
+app.get('/healthz', healthHandler);
+app.get('/healthz/healthz', healthHandler);
 
 // Users/admin routes (protected via Clerk in the router)
 app.use('/api/users', require('./routes/users'));
