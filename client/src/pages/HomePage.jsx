@@ -31,7 +31,7 @@ export default function HomePage() {
                   Learn more
                 </a>
                 <a
-                  href="#book-appointment"
+                  href="/reservation"
                   className="rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-sky-300 hover:text-sky-700"
                 >
                   Explore services
@@ -188,7 +188,7 @@ export default function HomePage() {
 
             <div className="flex flex-wrap gap-4">
               <a
-                href="#book-appointment"
+                href="/reservation"
                 className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
               >
                 Book your appointment
