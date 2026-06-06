@@ -23,10 +23,14 @@ export default function Navbar() {
          Home
       </Link>
       <SignedIn>
-        
-         
-         
-        
+        <Link to="/reservation" onClick={() => setMobileOpen(false)}
+         className={`flex items-center gap-2 text-sm py-1 ${active('/reservation')}`}>
+           Reservation
+        </Link>
+        <Link to="/booked" onClick={() => setMobileOpen(false)}
+         className={`flex items-center gap-2 text-sm py-1 ${active('/booked')}`}>
+           Booked
+        </Link>
       </SignedIn>
     </>
   )
