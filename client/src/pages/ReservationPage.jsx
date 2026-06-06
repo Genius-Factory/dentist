@@ -1,12 +1,10 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useUser } from '@clerk/clerk-react'
 
-// Lebanon working hours: Mon-Fri, 8am-4pm
-const WORKING_HOURS = [
-  '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-  '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30',
-]
+const STORAGE_KEY = 'dentistBookings'
+const OPEN_TIME = '08:00'
+const CLOSE_TIME = '17:00'
 
 const DURATIONS = [
   { value: 30, label: '30 minutes', price: 10 },
@@ -19,134 +17,400 @@ const EMERGENCY_LEVELS = [
   { value: 'high', label: 'High - Urgent care needed' },
 ]
 
-function getNextBusinessDays() {
-  const dates = []
+const DEPARTMENTS = [
+  { value: 'general', label: 'General Medicine' },
+  { value: 'dental', label: 'Dental Care' },
+  { value: 'eye', label: 'Eye Care' },
+  { value: 'obgyn', label: 'Pregnancy / OB-GYN' },
+  { value: 'dermatology', label: 'Dermatology' },
+  { value: 'cardiology', label: 'Cardiology' },
+  { value: 'mental-health', label: 'Mental Health' },
+]
+
+const emergencyKeywords = [
+  'chest pain',
+  'difficulty breathing',
+  'shortness of breath',
+  'unconscious',
+  'fainting',
+  'severe bleeding',
+  'bleeding',
+  'stroke',
+  'seizure',
+  'heart attack',
+  'suicidal',
+  'poisoning',
+  'pregnancy bleeding',
+  'high fever',
+  'accident',
+  'severe pain',
+]
+
+const mediumKeywords = [
+  'fever',
+  'infection',
+  'vomiting',
+  'dizziness',
+  'pain',
+  'sick',
+  'cough',
+  'headache',
+]
+
+const lifeThreateningKeywords = [
+  'chest pain',
+  'shortness of breath',
+  'difficulty breathing',
+  'unconscious',
+  'severe bleeding',
+  'stroke',
+  'seizure',
+  'suicidal',
+  'poisoning',
+  'heart attack',
+]
+
+const junkWords = ['test', 'asdf', 'qwerty', 'none', 'idk', 'sicke']
+
+const departmentKeywords = {
+  dental: ['dental', 'tooth', 'teeth', 'gum'],
+  eye: ['eye', 'vision', 'blurry'],
+  obgyn: ['pregnancy', 'pregnant'],
+  dermatology: ['skin', 'rash'],
+  cardiology: ['heart', 'chest pain'],
+  'mental-health': ['mental health', 'anxiety', 'depression', 'suicidal'],
+}
+
+function toDateInputValue(date) {
+  return date.toISOString().split('T')[0]
+}
+
+function addDays(date, days) {
+  const next = new Date(date)
+  next.setDate(date.getDate() + days)
+  return next
+}
+
+function addMonths(date, months) {
+  const next = new Date(date)
+  next.setMonth(date.getMonth() + months)
+  return next
+}
+
+function isWeekend(dateValue) {
+  const day = new Date(`${dateValue}T00:00:00`).getDay()
+  return day === 0 || day === 6
+}
+
+function minutesFromTime(time) {
+  const [hours, minutes] = time.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+function timeFromMinutes(totalMinutes) {
+  const hours = Math.floor(totalMinutes / 60).toString().padStart(2, '0')
+  const minutes = (totalMinutes % 60).toString().padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
+function getWorkingTimes(duration) {
+  const times = []
+  const openMinutes = minutesFromTime(OPEN_TIME)
+  const closeMinutes = minutesFromTime(CLOSE_TIME)
+
+  for (let time = openMinutes; time + duration <= closeMinutes; time += 30) {
+    times.push(timeFromMinutes(time))
+  }
+
+  return times
+}
+
+function getBusinessDaysForMonth() {
   const today = new Date()
-  
-  for (let i = 0; dates.length < 14; i++) {
-    const date = new Date(today)
-    date.setDate(today.getDate() + i)
-    const day = date.getDay()
-    // Monday = 1, Friday = 5
-    if (day >= 1 && day <= 5) {
-      dates.push(date.toISOString().split('T')[0])
+  const maxDate = addMonths(today, 1)
+  const dates = []
+
+  for (let date = new Date(today); date <= maxDate; date = addDays(date, 1)) {
+    const value = toDateInputValue(date)
+    if (!isWeekend(value)) {
+      dates.push(value)
     }
   }
+
   return dates
+}
+
+function getStoredBookings() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []
+  } catch {
+    return []
+  }
+}
+
+function getAge(dateOfBirth) {
+  if (!dateOfBirth) return ''
+  const birthDate = new Date(`${dateOfBirth}T00:00:00`)
+  const today = new Date()
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const monthDiff = today.getMonth() - birthDate.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age -= 1
+  }
+  return age
+}
+
+function normalizeText(value) {
+  return value.trim().toLowerCase()
+}
+
+function hasKeyword(text, keywords) {
+  return keywords.some((word) => text.includes(word))
+}
+
+function getSuggestedDepartment(issue) {
+  const normalizedIssue = normalizeText(issue)
+  return Object.entries(departmentKeywords).find(([, keywords]) =>
+    hasKeyword(normalizedIssue, keywords),
+  )?.[0]
+}
+
+function hasUpcomingBooking(bookings, form, userId, editId) {
+  const now = Date.now()
+  const patientName = normalizeText(form.name)
+
+  return bookings.some((booking) => {
+    if (booking.id === editId || booking.userId !== userId) return false
+
+    const appointmentTime = new Date(`${booking.date}T${booking.time || '00:00'}`).getTime()
+    const samePatient =
+      normalizeText(booking.name || '') === patientName &&
+      booking.dateOfBirth === form.dateOfBirth
+
+    return samePatient && appointmentTime >= now
+  })
+}
+
+function isClearMedicalReason(issue) {
+  const normalizedIssue = normalizeText(issue)
+  const letters = normalizedIssue.replace(/[^a-z]/g, '')
+  const hasOnlyRepeatedPunctuation = /^[.\-_\s\d]+$/.test(normalizedIssue)
+
+  if (normalizedIssue.length < 10) return false
+  if (hasOnlyRepeatedPunctuation) return false
+  if (letters.length < 6) return false
+  if (junkWords.includes(normalizedIssue)) return false
+
+  return true
+}
+
+function validateAppointmentForm(form, bookings, userId, editId) {
+  const errors = {}
+  const issue = normalizeText(form.medicalIssue || '')
+  const name = form.name?.trim() || ''
+  const nameParts = name.split(/\s+/).filter(Boolean)
+  const age = getAge(form.dateOfBirth)
+  const suggestedDepartment = getSuggestedDepartment(form.medicalIssue || '')
+
+  if (name.length < 3 || nameParts.length < 2 || !/^[a-zA-Z\s'-]+$/.test(name)) {
+    errors.name = "Please enter the patient's full name."
+  }
+
+  if (!form.dateOfBirth || !Number.isInteger(age) || age < 1 || age > 120) {
+    errors.dateOfBirth = 'Please enter a valid age between 1 and 120.'
+  }
+
+  if (Number.isInteger(age) && age < 18 && !form.guardianContact.trim()) {
+    errors.guardianContact = 'Patients under 18 must provide guardian contact information.'
+  }
+
+  if (!isClearMedicalReason(form.medicalIssue || '')) {
+    errors.medicalIssue =
+      'Please describe the medical issue clearly, including symptoms and duration. Example: "Fever and sore throat for 2 days."'
+  }
+
+  if (hasKeyword(issue, emergencyKeywords) && form.emergencyLevel === 'low') {
+    errors.emergencyLevel =
+      'This symptom may require urgent care. Please choose Medium/High emergency level or call emergency services if severe.'
+  } else if (hasKeyword(issue, mediumKeywords) && form.emergencyLevel === 'low') {
+    errors.emergencyLevel =
+      'Low emergency level is only for routine visits or non-urgent checkups. If symptoms are worsening, choose Medium or provide more details.'
+  }
+
+  if (suggestedDepartment && !form.department) {
+    errors.department = 'Please select the correct department before choosing an appointment time.'
+  }
+
+  if (!editId && hasUpcomingBooking(bookings, form, userId, editId)) {
+    errors.duplicate =
+      'You already have an upcoming appointment. Please reschedule or cancel the existing appointment before booking a new one.'
+  }
+
+  return errors
+}
+
+const emptyForm = {
+  name: '',
+  dateOfBirth: '',
+  guardianContact: '',
+  medicalIssue: '',
+  emergencyLevel: 'low',
+  department: '',
+  duration: 30,
+  date: '',
+  time: '',
 }
 
 export default function ReservationPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user, isLoaded } = useUser()
+  const editId = searchParams.get('edit')
 
-  const [formData, setFormData] = useState({
-    name: '',
-    age: '',
-    medicalIssue: '',
-    emergencyLevel: 'low',
-    duration: 30,
-    date: '',
-    time: '',
-  })
-  const [step, setStep] = useState(1) // 1: info, 2: calendar, 3: confirm
-  const [submitted, setSubmitted] = useState(false)
-  const [countdown, setCountdown] = useState(null)
+  const [formData, setFormData] = useState(emptyForm)
+  const [step, setStep] = useState(1)
+  const [dateError, setDateError] = useState('')
+  const [errors, setErrors] = useState({})
 
-  const businessDays = getNextBusinessDays()
-  const selectedDuration = DURATIONS.find(d => d.value === formData.duration)
+  const businessDays = useMemo(() => getBusinessDaysForMonth(), [])
+  const todayValue = toDateInputValue(new Date())
+  const maxDateValue = toDateInputValue(addMonths(new Date(), 1))
+  const selectedDuration = DURATIONS.find((duration) => duration.value === Number(formData.duration))
+  const workingTimes = getWorkingTimes(Number(formData.duration))
+  const derivedAge = getAge(formData.dateOfBirth)
+  const suggestedDepartment = getSuggestedDepartment(formData.medicalIssue)
+  const showDepartment = Boolean(suggestedDepartment)
+  const showEmergencyWarning = hasKeyword(normalizeText(formData.medicalIssue), lifeThreateningKeywords)
+
+  useEffect(() => {
+    if (!isLoaded || !user || !editId) return
+
+    const booking = getStoredBookings().find(
+      (item) => item.id === editId && item.userId === user.id,
+    )
+
+    if (booking) {
+      setFormData({
+        name: booking.name,
+        dateOfBirth: booking.dateOfBirth,
+        guardianContact: booking.guardianContact || '',
+        medicalIssue: booking.medicalIssue,
+        emergencyLevel: booking.emergencyLevel,
+        department: booking.department || '',
+        duration: booking.duration,
+        date: booking.date,
+        time: booking.time,
+      })
+      setStep(1)
+    }
+  }, [editId, isLoaded, user])
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    setErrors((prev) => ({ ...prev, [name]: '', duplicate: '' }))
   }
 
-  const isStep1Valid = formData.name && formData.age && formData.medicalIssue && formData.emergencyLevel
+  const handleDateChange = (e) => {
+    const value = e.target.value
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (!isLoaded) return
-    if (!user) {
-      navigate('/sign-in')
+    if (!value) {
+      setDateError('')
+      setFormData((prev) => ({ ...prev, date: '', time: '' }))
       return
     }
-    setSubmitted(true)
+
+    if (isWeekend(value)) {
+      setDateError('Weekends are closed. Please choose a weekday.')
+      setFormData((prev) => ({ ...prev, date: '', time: '' }))
+      return
+    }
+
+    setDateError('')
+    setFormData((prev) => ({ ...prev, date: value, time: '' }))
   }
 
-  // Countdown timer for 24 hours edit window
-  useEffect(() => {
-    if (submitted) {
-      const endTime = new Date().getTime() + 24 * 60 * 60 * 1000
-      const interval = setInterval(() => {
-        const now = new Date().getTime()
-        const remaining = endTime - now
-        if (remaining <= 0) {
-          setCountdown('Expired')
-          clearInterval(interval)
-        } else {
-          const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-          const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60))
-          const seconds = Math.floor((remaining % (1000 * 60)) / 1000)
-          setCountdown(`${hours}h ${minutes}m ${seconds}s`)
-        }
-      }, 1000)
-      return () => clearInterval(interval)
+  const hasStep1RequiredFields =
+    formData.name &&
+    formData.dateOfBirth &&
+    formData.medicalIssue &&
+    formData.emergencyLevel
+  const isStep2Valid = formData.date && formData.time
+
+  const handleContinueToCalendar = () => {
+    const nextErrors = validateAppointmentForm(formData, getStoredBookings(), user.id, editId)
+    setErrors(nextErrors)
+
+    if (Object.keys(nextErrors).length === 0) {
+      setStep(2)
     }
-  }, [submitted])
+  }
 
-  if (submitted) {
+  const handleReview = (e) => {
+    e.preventDefault()
+    const nextErrors = validateAppointmentForm(formData, getStoredBookings(), user.id, editId)
+    setErrors(nextErrors)
+
+    if (Object.keys(nextErrors).length === 0 && isStep2Valid) {
+      setStep(3)
+    }
+  }
+
+  const handleApprove = () => {
+    const nextErrors = validateAppointmentForm(formData, getStoredBookings(), user.id, editId)
+    setErrors(nextErrors)
+
+    if (Object.keys(nextErrors).length > 0) {
+      setStep(1)
+      return
+    }
+
+    const booking = {
+      ...formData,
+      id: editId || crypto.randomUUID(),
+      userId: user.id,
+      duration: Number(formData.duration),
+      createdAt: new Date().toISOString(),
+      editableUntil: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      status: 'approved',
+    }
+    const existingBookings = getStoredBookings()
+    const nextBookings = editId
+      ? existingBookings.map((item) => (item.id === editId && item.userId === user.id ? booking : item))
+      : [...existingBookings, booking]
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextBookings))
+    navigate('/booked')
+  }
+
+  if (!isLoaded) {
     return (
-      <div className="mx-auto max-w-2xl">
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-            <svg className="h-8 w-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-semibold text-slate-900">Appointment Booked!</h2>
-          <p className="mt-2 text-slate-600">
-            Your appointment has been scheduled. You can edit within 24 hours.
-          </p>
-          
-          {countdown && (
-            <div className="mt-4 rounded-lg bg-amber-50 p-3 text-amber-700">
-              <span className="text-sm font-medium">Edit window: </span>
-              <span className="font-mono">{countdown}</span>
-            </div>
-          )}
+      <div className="mx-auto max-w-2xl rounded-lg border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">
+        Loading reservation...
+      </div>
+    )
+  }
 
-          <div className="mt-6 rounded-lg bg-slate-50 p-4 text-left">
-            <p className="text-sm font-medium text-slate-700">Appointment Details</p>
-            <div className="mt-2 space-y-1 text-sm text-slate-600">
-              <p><span className="font-medium">Name:</span> {formData.name}</p>
-              <p><span className="font-medium">Age:</span> {formData.age}</p>
-              <p><span className="font-medium">Issue:</span> {formData.medicalIssue}</p>
-              <p><span className="font-medium">Emergency:</span> {EMERGENCY_LEVELS.find(e => e.value === formData.emergencyLevel)?.label}</p>
-              <p><span className="font-medium">Duration:</span> {selectedDuration?.label}</p>
-              <p><span className="font-medium">Price:</span> ${selectedDuration?.price}</p>
-              <p><span className="font-medium">Date:</span> {formData.date}</p>
-              <p><span className="font-medium">Time:</span> {formData.time}</p>
-            </div>
-          </div>
-
-          <div className="mt-6 flex gap-4 justify-center">
-            <button className="rounded-full bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
-              Approve
-            </button>
-            <button className="rounded-full border border-red-200 px-6 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50">
-              Cancel
-            </button>
-          </div>
-
-          <button
-            onClick={() => {
-              setSubmitted(false)
-              setFormData({ name: '', age: '', medicalIssue: '', emergencyLevel: 'low', duration: 30, date: '', time: '' })
-              setStep(1)
-            }}
-            className="mt-4 text-sm text-slate-500 hover:text-slate-700"
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-2xl rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <h1 className="text-2xl font-semibold text-slate-900">Sign in to book an appointment</h1>
+        <p className="mt-2 text-slate-600">
+          Please sign in before entering reservation details so your appointment can be saved to your account.
+        </p>
+        <div className="mt-6 flex justify-center gap-3">
+          <Link
+            to="/sign-in?redirect_url=/reservation"
+            className="rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
-            Book Another
-          </button>
+            Sign In
+          </Link>
+          <Link
+            to="/sign-up?redirect_url=/reservation"
+            className="rounded-full border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Create Account
+          </Link>
         </div>
       </div>
     )
@@ -155,30 +419,33 @@ export default function ReservationPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-slate-900">Book an Appointment</h1>
-        <p className="mt-2 text-slate-600">Fill in your details to schedule a visit.</p>
+        <h1 className="text-3xl font-semibold text-slate-900">
+          {editId ? 'Edit Appointment' : 'Book an Appointment'}
+        </h1>
       </div>
 
-      {/* Progress Steps */}
       <div className="mb-6 flex items-center justify-center gap-2">
-        {[1, 2, 3].map((s) => (
-          <div key={s} className="flex items-center">
-            <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
-              step >= s ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-500'
-            }`}>
-              {s}
+        {[1, 2, 3].map((currentStep) => (
+          <div key={currentStep} className="flex items-center">
+            <div
+              className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
+                step >= currentStep ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-500'
+              }`}
+            >
+              {currentStep}
             </div>
-            {s < 3 && <div className={`h-1 w-12 ${step > s ? 'bg-slate-900' : 'bg-slate-200'}`} />}
+            {currentStep < 3 && (
+              <div className={`h-1 w-12 ${step > currentStep ? 'bg-slate-900' : 'bg-slate-200'}`} />
+            )}
           </div>
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        {/* Step 1: Personal Info */}
+      <form onSubmit={handleReview} className="space-y-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
         {step === 1 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Patient Information</h2>
-            
+
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-slate-700">
                 Name <span className="text-red-500">*</span>
@@ -193,30 +460,57 @@ export default function ReservationPage() {
                 className="mt-2 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
                 placeholder="Your full name"
               />
+              {errors.name && <p className="mt-2 text-sm text-red-600">{errors.name}</p>}
             </div>
 
             <div>
-              <label htmlFor="age" className="block text-sm font-medium text-slate-700">
-                Age <span className="text-red-500">*</span>
+              <label htmlFor="dateOfBirth" className="block text-sm font-medium text-slate-700">
+                Date of Birth <span className="text-red-500">*</span>
               </label>
               <input
-                type="number"
-                id="age"
-                name="age"
-                value={formData.age}
+                type="date"
+                id="dateOfBirth"
+                name="dateOfBirth"
+                value={formData.dateOfBirth}
                 onChange={handleChange}
                 required
-                min="1"
-                max="150"
+                max={todayValue}
                 className="mt-2 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                placeholder="Your age"
               />
+              {Number.isInteger(derivedAge) && (
+                <p className="mt-2 text-sm text-slate-500">Age: {derivedAge}</p>
+              )}
+              {errors.dateOfBirth && <p className="mt-2 text-sm text-red-600">{errors.dateOfBirth}</p>}
             </div>
+
+            {Number.isInteger(derivedAge) && derivedAge < 18 && (
+              <div>
+                <label htmlFor="guardianContact" className="block text-sm font-medium text-slate-700">
+                  Guardian Contact <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="guardianContact"
+                  name="guardianContact"
+                  value={formData.guardianContact}
+                  onChange={handleChange}
+                  required
+                  className="mt-2 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  placeholder="Guardian name and phone number"
+                />
+                {errors.guardianContact && (
+                  <p className="mt-2 text-sm text-red-600">{errors.guardianContact}</p>
+                )}
+              </div>
+            )}
 
             <div>
               <label htmlFor="medicalIssue" className="block text-sm font-medium text-slate-700">
                 Medical Issue <span className="text-red-500">*</span>
               </label>
+              <p className="mt-1 text-sm text-slate-500">
+                Include symptoms, duration, and severity. Example: "Fever for 2 days with sore throat."
+              </p>
               <textarea
                 id="medicalIssue"
                 name="medicalIssue"
@@ -227,12 +521,21 @@ export default function ReservationPage() {
                 placeholder="Describe your dental issue..."
                 className="mt-2 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
               />
+              {showEmergencyWarning && (
+                <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  If this is a life-threatening emergency, do not book online. Call emergency services or go to the nearest emergency department.
+                </div>
+              )}
+              {errors.medicalIssue && <p className="mt-2 text-sm text-red-600">{errors.medicalIssue}</p>}
             </div>
 
             <div>
               <label htmlFor="emergencyLevel" className="block text-sm font-medium text-slate-700">
                 Emergency Level <span className="text-red-500">*</span>
               </label>
+              <p className="mt-1 text-sm text-slate-500">
+                Low = routine checkup. Medium = symptoms but stable. High = urgent or severe symptoms.
+              </p>
               <select
                 id="emergencyLevel"
                 name="emergencyLevel"
@@ -247,12 +550,48 @@ export default function ReservationPage() {
                   </option>
                 ))}
               </select>
+              {errors.emergencyLevel && <p className="mt-2 text-sm text-red-600">{errors.emergencyLevel}</p>}
             </div>
+
+            {showDepartment && (
+              <div>
+                <label htmlFor="department" className="block text-sm font-medium text-slate-700">
+                  Department <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="department"
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  required
+                  className="mt-2 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                >
+                  <option value="">Select department</option>
+                  {DEPARTMENTS.map((department) => (
+                    <option key={department.value} value={department.value}>
+                      {department.label}
+                    </option>
+                  ))}
+                </select>
+                {suggestedDepartment && (
+                  <p className="mt-2 text-sm text-slate-500">
+                    Based on the medical reason, this appointment should be routed before choosing a time.
+                  </p>
+                )}
+                {errors.department && <p className="mt-2 text-sm text-red-600">{errors.department}</p>}
+              </div>
+            )}
+
+            {errors.duplicate && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {errors.duplicate}
+              </div>
+            )}
 
             <button
               type="button"
-              onClick={() => setStep(2)}
-              disabled={!isStep1Valid}
+              onClick={handleContinueToCalendar}
+              disabled={!hasStep1RequiredFields}
               className="w-full rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
             >
               Continue to Calendar
@@ -260,61 +599,84 @@ export default function ReservationPage() {
           </div>
         )}
 
-        {/* Step 2: Calendar & Time Selection */}
         {step === 2 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Select Date & Time</h2>
-            <p className="text-sm text-slate-500">Mon-Fri, 8:00 AM - 4:00 PM (Lebanon Time)</p>
+            <p className="text-sm text-slate-500">Available weekdays, 8:00 AM - 5:00 PM, up to 1 month ahead.</p>
 
-            {/* Duration Selection */}
             <div>
               <label className="block text-sm font-medium text-slate-700">Duration</label>
               <div className="mt-2 grid grid-cols-2 gap-3">
-                {DURATIONS.map((d) => (
+                {DURATIONS.map((duration) => (
                   <button
-                    key={d.value}
+                    key={duration.value}
                     type="button"
-                    onClick={() => setFormData((prev) => ({ ...prev, duration: d.value }))}
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, duration: duration.value, time: '' }))
+                    }
                     className={`rounded-lg border p-4 text-center transition ${
-                      formData.duration === d.value
+                      Number(formData.duration) === duration.value
                         ? 'border-sky-500 bg-sky-50 text-sky-700'
                         : 'border-slate-200 hover:border-sky-300'
                     }`}
                   >
-                    <p className="font-medium">{d.label}</p>
-                    <p className="text-sm text-slate-500">${d.price}</p>
+                    <p className="font-medium">{duration.label}</p>
+                    <p className="text-sm text-slate-500">${duration.price}</p>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Date Selection */}
             <div>
-              <label className="block text-sm font-medium text-slate-700">Select Date</label>
-              <div className="mt-2 grid grid-cols-3 sm:grid-cols-5 gap-2">
+              <label htmlFor="date" className="block text-sm font-medium text-slate-700">
+                Appointment Date
+              </label>
+              <input
+                type="date"
+                id="date"
+                name="date"
+                value={formData.date}
+                onChange={handleDateChange}
+                min={todayValue}
+                max={maxDateValue}
+                required
+                className="mt-2 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              />
+              {dateError && <p className="mt-2 text-sm text-red-600">{dateError}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700">Quick Weekday Picks</label>
+              <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
                 {businessDays.slice(0, 10).map((date) => (
                   <button
                     key={date}
                     type="button"
-                    onClick={() => setFormData((prev) => ({ ...prev, date, time: '' }))}
+                    onClick={() => {
+                      setDateError('')
+                      setFormData((prev) => ({ ...prev, date, time: '' }))
+                    }}
                     className={`rounded-lg border p-2 text-center text-sm transition ${
                       formData.date === date
                         ? 'border-sky-500 bg-sky-50 text-sky-700'
                         : 'border-slate-200 hover:border-sky-300'
                     }`}
                   >
-                    {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}
+                    {new Date(`${date}T00:00:00`).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      weekday: 'short',
+                    })}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Time Selection */}
             {formData.date && (
               <div>
-                <label className="block text-sm font-medium text-slate-700">Select Time</label>
-                <div className="mt-2 grid grid-cols-4 gap-2">
-                  {WORKING_HOURS.map((time) => (
+                <label className="block text-sm font-medium text-slate-700">Appointment Time</label>
+                <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {workingTimes.map((time) => (
                     <button
                       key={time}
                       type="button"
@@ -342,10 +704,56 @@ export default function ReservationPage() {
               </button>
               <button
                 type="submit"
-                disabled={!formData.date || !formData.time}
+                disabled={!isStep2Valid}
                 className="flex-1 rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
               >
-                Confirm Booking
+                Review Booking
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-slate-900">Confirm Appointment</h2>
+            <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+              <p><span className="font-medium text-slate-700">Name:</span> {formData.name}</p>
+              <p><span className="font-medium text-slate-700">Date of Birth:</span> {formData.dateOfBirth}</p>
+              <p><span className="font-medium text-slate-700">Age:</span> {getAge(formData.dateOfBirth)}</p>
+              {formData.guardianContact && (
+                <p><span className="font-medium text-slate-700">Guardian:</span> {formData.guardianContact}</p>
+              )}
+              <p><span className="font-medium text-slate-700">Issue:</span> {formData.medicalIssue}</p>
+              <p>
+                <span className="font-medium text-slate-700">Emergency:</span>{' '}
+                {EMERGENCY_LEVELS.find((level) => level.value === formData.emergencyLevel)?.label}
+              </p>
+              {formData.department && (
+                <p>
+                  <span className="font-medium text-slate-700">Department:</span>{' '}
+                  {DEPARTMENTS.find((department) => department.value === formData.department)?.label}
+                </p>
+              )}
+              <p><span className="font-medium text-slate-700">Duration:</span> {selectedDuration?.label}</p>
+              <p><span className="font-medium text-slate-700">Price:</span> ${selectedDuration?.price}</p>
+              <p><span className="font-medium text-slate-700">Date:</span> {formData.date}</p>
+              <p><span className="font-medium text-slate-700">Time:</span> {formData.time}</p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                className="flex-1 rounded-full border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={handleApprove}
+                className="flex-1 rounded-full bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
+              >
+                Approve
               </button>
             </div>
           </div>
