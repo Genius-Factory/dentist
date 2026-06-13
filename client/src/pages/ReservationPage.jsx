@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useUser } from '@clerk/clerk-react'
+import {
+  EDIT_WINDOW_MS,
+  getStoredBookings,
+  isBookingEditable,
+  isSecretaryRole,
+  saveStoredBookings,
+} from '../lib/bookings'
 
-const STORAGE_KEY = 'dentistBookings'
 const OPEN_TIME = '08:00'
 const CLOSE_TIME = '17:00'
 
@@ -15,16 +21,6 @@ const EMERGENCY_LEVELS = [
   { value: 'low', label: 'Low - Regular checkup' },
   { value: 'medium', label: 'Medium - Needs attention soon' },
   { value: 'high', label: 'High - Urgent care needed' },
-]
-
-const DEPARTMENTS = [
-  { value: 'general', label: 'General Medicine' },
-  { value: 'dental', label: 'Dental Care' },
-  { value: 'eye', label: 'Eye Care' },
-  { value: 'obgyn', label: 'Pregnancy / OB-GYN' },
-  { value: 'dermatology', label: 'Dermatology' },
-  { value: 'cardiology', label: 'Cardiology' },
-  { value: 'mental-health', label: 'Mental Health' },
 ]
 
 const emergencyKeywords = [
@@ -71,15 +67,6 @@ const lifeThreateningKeywords = [
 ]
 
 const junkWords = ['test', 'asdf', 'qwerty', 'none', 'idk', 'sicke']
-
-const departmentKeywords = {
-  dental: ['dental', 'tooth', 'teeth', 'gum'],
-  eye: ['eye', 'vision', 'blurry'],
-  obgyn: ['pregnancy', 'pregnant'],
-  dermatology: ['skin', 'rash'],
-  cardiology: ['heart', 'chest pain'],
-  'mental-health': ['mental health', 'anxiety', 'depression', 'suicidal'],
-}
 
 function toDateInputValue(date) {
   return date.toISOString().split('T')[0]
@@ -140,14 +127,6 @@ function getBusinessDaysForMonth() {
   return dates
 }
 
-function getStoredBookings() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []
-  } catch {
-    return []
-  }
-}
-
 function getAge(dateOfBirth) {
   if (!dateOfBirth) return ''
   const birthDate = new Date(`${dateOfBirth}T00:00:00`)
@@ -168,29 +147,6 @@ function hasKeyword(text, keywords) {
   return keywords.some((word) => text.includes(word))
 }
 
-function getSuggestedDepartment(issue) {
-  const normalizedIssue = normalizeText(issue)
-  return Object.entries(departmentKeywords).find(([, keywords]) =>
-    hasKeyword(normalizedIssue, keywords),
-  )?.[0]
-}
-
-function hasUpcomingBooking(bookings, form, userId, editId) {
-  const now = Date.now()
-  const patientName = normalizeText(form.name)
-
-  return bookings.some((booking) => {
-    if (booking.id === editId || booking.userId !== userId) return false
-
-    const appointmentTime = new Date(`${booking.date}T${booking.time || '00:00'}`).getTime()
-    const samePatient =
-      normalizeText(booking.name || '') === patientName &&
-      booking.dateOfBirth === form.dateOfBirth
-
-    return samePatient && appointmentTime >= now
-  })
-}
-
 function isClearMedicalReason(issue) {
   const normalizedIssue = normalizeText(issue)
   const letters = normalizedIssue.replace(/[^a-z]/g, '')
@@ -204,13 +160,12 @@ function isClearMedicalReason(issue) {
   return true
 }
 
-function validateAppointmentForm(form, bookings, userId, editId) {
+function validateAppointmentForm(form) {
   const errors = {}
   const issue = normalizeText(form.medicalIssue || '')
   const name = form.name?.trim() || ''
   const nameParts = name.split(/\s+/).filter(Boolean)
   const age = getAge(form.dateOfBirth)
-  const suggestedDepartment = getSuggestedDepartment(form.medicalIssue || '')
 
   if (name.length < 3 || nameParts.length < 2 || !/^[a-zA-Z\s'-]+$/.test(name)) {
     errors.name = "Please enter the patient's full name."
@@ -226,7 +181,7 @@ function validateAppointmentForm(form, bookings, userId, editId) {
 
   if (!isClearMedicalReason(form.medicalIssue || '')) {
     errors.medicalIssue =
-      'Please describe the medical issue clearly, including symptoms and duration. Example: "Fever and sore throat for 2 days."'
+      'Please describe the medical issue clearly, including symptoms and duration. Example: "Bad toothache for the last 3 days, worse when eating."'
   }
 
   if (hasKeyword(issue, emergencyKeywords) && form.emergencyLevel === 'low') {
@@ -235,15 +190,6 @@ function validateAppointmentForm(form, bookings, userId, editId) {
   } else if (hasKeyword(issue, mediumKeywords) && form.emergencyLevel === 'low') {
     errors.emergencyLevel =
       'Low emergency level is only for routine visits or non-urgent checkups. If symptoms are worsening, choose Medium or provide more details.'
-  }
-
-  if (suggestedDepartment && !form.department) {
-    errors.department = 'Please select the correct department before choosing an appointment time.'
-  }
-
-  if (!editId && hasUpcomingBooking(bookings, form, userId, editId)) {
-    errors.duplicate =
-      'You already have an upcoming appointment. Please reschedule or cancel the existing appointment before booking a new one.'
   }
 
   return errors
@@ -255,7 +201,6 @@ const emptyForm = {
   guardianContact: '',
   medicalIssue: '',
   emergencyLevel: 'low',
-  department: '',
   duration: 30,
   date: '',
   time: '',
@@ -266,6 +211,8 @@ export default function ReservationPage() {
   const [searchParams] = useSearchParams()
   const { user, isLoaded } = useUser()
   const editId = searchParams.get('edit')
+  const role = user?.publicMetadata?.role || 'member'
+  const isSecretary = isSecretaryRole(role)
 
   const [formData, setFormData] = useState(emptyForm)
   const [step, setStep] = useState(1)
@@ -278,37 +225,37 @@ export default function ReservationPage() {
   const selectedDuration = DURATIONS.find((duration) => duration.value === Number(formData.duration))
   const workingTimes = getWorkingTimes(Number(formData.duration))
   const derivedAge = getAge(formData.dateOfBirth)
-  const suggestedDepartment = getSuggestedDepartment(formData.medicalIssue)
-  const showDepartment = Boolean(suggestedDepartment)
   const showEmergencyWarning = hasKeyword(normalizeText(formData.medicalIssue), lifeThreateningKeywords)
 
   useEffect(() => {
     if (!isLoaded || !user || !editId) return
 
-    const booking = getStoredBookings().find(
-      (item) => item.id === editId && item.userId === user.id,
-    )
+    const booking = getStoredBookings().find((item) => item.id === editId && item.userId === user.id)
 
     if (booking) {
+      if (!isBookingEditable(booking)) {
+        navigate('/booked', { replace: true })
+        return
+      }
+
       setFormData({
         name: booking.name,
         dateOfBirth: booking.dateOfBirth,
         guardianContact: booking.guardianContact || '',
         medicalIssue: booking.medicalIssue,
         emergencyLevel: booking.emergencyLevel,
-        department: booking.department || '',
         duration: booking.duration,
         date: booking.date,
         time: booking.time,
       })
       setStep(1)
     }
-  }, [editId, isLoaded, user])
+  }, [editId, isLoaded, navigate, user])
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
-    setErrors((prev) => ({ ...prev, [name]: '', duplicate: '' }))
+    setErrors((prev) => ({ ...prev, [name]: '' }))
   }
 
   const handleDateChange = (e) => {
@@ -338,7 +285,7 @@ export default function ReservationPage() {
   const isStep2Valid = formData.date && formData.time
 
   const handleContinueToCalendar = () => {
-    const nextErrors = validateAppointmentForm(formData, getStoredBookings(), user.id, editId)
+    const nextErrors = validateAppointmentForm(formData)
     setErrors(nextErrors)
 
     if (Object.keys(nextErrors).length === 0) {
@@ -348,7 +295,7 @@ export default function ReservationPage() {
 
   const handleReview = (e) => {
     e.preventDefault()
-    const nextErrors = validateAppointmentForm(formData, getStoredBookings(), user.id, editId)
+    const nextErrors = validateAppointmentForm(formData)
     setErrors(nextErrors)
 
     if (Object.keys(nextErrors).length === 0 && isStep2Valid) {
@@ -356,8 +303,8 @@ export default function ReservationPage() {
     }
   }
 
-  const handleApprove = () => {
-    const nextErrors = validateAppointmentForm(formData, getStoredBookings(), user.id, editId)
+  const handleSaveBooking = () => {
+    const nextErrors = validateAppointmentForm(formData)
     setErrors(nextErrors)
 
     if (Object.keys(nextErrors).length > 0) {
@@ -365,21 +312,32 @@ export default function ReservationPage() {
       return
     }
 
+    const existingBookings = getStoredBookings()
+    const existingBooking = editId
+      ? existingBookings.find((item) => item.id === editId && item.userId === user.id)
+      : null
+    const createdAt = existingBooking?.createdAt || new Date().toISOString()
+    const status = isSecretary ? 'approved' : 'pending'
     const booking = {
       ...formData,
       id: editId || crypto.randomUUID(),
       userId: user.id,
       duration: Number(formData.duration),
-      createdAt: new Date().toISOString(),
-      editableUntil: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      status: 'approved',
+      createdAt,
+      editableUntil: existingBooking?.editableUntil || new Date(Date.now() + EDIT_WINDOW_MS).toISOString(),
+      status,
+      requestedByRole: role,
+      updatedAt: new Date().toISOString(),
+      approvedAt: status === 'approved' ? new Date().toISOString() : null,
+      approvedBy: status === 'approved' ? user.id : null,
+      declinedAt: null,
+      declinedBy: null,
     }
-    const existingBookings = getStoredBookings()
     const nextBookings = editId
       ? existingBookings.map((item) => (item.id === editId && item.userId === user.id ? booking : item))
       : [...existingBookings, booking]
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextBookings))
+    saveStoredBookings(nextBookings)
     navigate('/booked')
   }
 
@@ -422,6 +380,11 @@ export default function ReservationPage() {
         <h1 className="text-3xl font-semibold text-slate-900">
           {editId ? 'Edit Appointment' : 'Book an Appointment'}
         </h1>
+        <p className="mt-2 text-slate-600">
+          {isSecretary
+            ? 'Secretary-created appointments are approved immediately.'
+            : 'Your request will be sent to a secretary for approval.'}
+        </p>
       </div>
 
       <div className="mb-6 flex items-center justify-center gap-2">
@@ -509,7 +472,7 @@ export default function ReservationPage() {
                 Medical Issue <span className="text-red-500">*</span>
               </label>
               <p className="mt-1 text-sm text-slate-500">
-                Include symptoms, duration, and severity. Example: "Fever for 2 days with sore throat."
+                Include symptoms, duration, and severity. Example: Bad toothache for the last 3 days, worse when eating.
               </p>
               <textarea
                 id="medicalIssue"
@@ -552,41 +515,6 @@ export default function ReservationPage() {
               </select>
               {errors.emergencyLevel && <p className="mt-2 text-sm text-red-600">{errors.emergencyLevel}</p>}
             </div>
-
-            {showDepartment && (
-              <div>
-                <label htmlFor="department" className="block text-sm font-medium text-slate-700">
-                  Department <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="department"
-                  name="department"
-                  value={formData.department}
-                  onChange={handleChange}
-                  required
-                  className="mt-2 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                >
-                  <option value="">Select department</option>
-                  {DEPARTMENTS.map((department) => (
-                    <option key={department.value} value={department.value}>
-                      {department.label}
-                    </option>
-                  ))}
-                </select>
-                {suggestedDepartment && (
-                  <p className="mt-2 text-sm text-slate-500">
-                    Based on the medical reason, this appointment should be routed before choosing a time.
-                  </p>
-                )}
-                {errors.department && <p className="mt-2 text-sm text-red-600">{errors.department}</p>}
-              </div>
-            )}
-
-            {errors.duplicate && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                {errors.duplicate}
-              </div>
-            )}
 
             <button
               type="button"
@@ -728,12 +656,6 @@ export default function ReservationPage() {
                 <span className="font-medium text-slate-700">Emergency:</span>{' '}
                 {EMERGENCY_LEVELS.find((level) => level.value === formData.emergencyLevel)?.label}
               </p>
-              {formData.department && (
-                <p>
-                  <span className="font-medium text-slate-700">Department:</span>{' '}
-                  {DEPARTMENTS.find((department) => department.value === formData.department)?.label}
-                </p>
-              )}
               <p><span className="font-medium text-slate-700">Duration:</span> {selectedDuration?.label}</p>
               <p><span className="font-medium text-slate-700">Price:</span> ${selectedDuration?.price}</p>
               <p><span className="font-medium text-slate-700">Date:</span> {formData.date}</p>
@@ -750,10 +672,10 @@ export default function ReservationPage() {
               </button>
               <button
                 type="button"
-                onClick={handleApprove}
+                onClick={handleSaveBooking}
                 className="flex-1 rounded-full bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
               >
-                Approve
+                {isSecretary ? 'Approve' : 'Send for Approval'}
               </button>
             </div>
           </div>

@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useUser } from '@clerk/clerk-react'
-
-const STORAGE_KEY = 'dentistBookings'
-
-function getStoredBookings() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []
-  } catch {
-    return []
-  }
-}
+import {
+  getBookingStatus,
+  getStatusClasses,
+  getStatusLabel,
+  getStoredBookings,
+  isBookingEditable,
+  saveStoredBookings,
+} from '../lib/bookings'
 
 function formatCountdown(editableUntil) {
   const remaining = new Date(editableUntil).getTime() - Date.now()
@@ -46,7 +44,7 @@ export default function BookedPage() {
     const nextBookings = getStoredBookings().filter(
       (booking) => !(booking.id === id && booking.userId === user.id),
     )
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextBookings))
+    saveStoredBookings(nextBookings)
     setBookings(nextBookings.filter((booking) => booking.userId === user.id))
   }
 
@@ -78,7 +76,9 @@ export default function BookedPage() {
       <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">Booked Appointments</h1>
-          <p className="mt-2 text-slate-600">Edit or cancel each appointment during its 24-hour window.</p>
+          <p className="mt-2 text-slate-600">
+            Track approval status. Pending requests can be edited or canceled during their 24-hour window.
+          </p>
         </div>
         <Link
           to="/reservation"
@@ -91,32 +91,39 @@ export default function BookedPage() {
       {bookings.length === 0 ? (
         <div className="rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
           <h2 className="text-xl font-semibold text-slate-900">No appointments booked yet</h2>
-          <p className="mt-2 text-slate-600">Once you approve a reservation, it will show here.</p>
+          <p className="mt-2 text-slate-600">Once you send a reservation, it will show here.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {bookings.map((booking) => {
-            const isExpired = new Date(booking.editableUntil).getTime() <= now
+            const status = getBookingStatus(booking)
+            const canEdit = isBookingEditable(booking, now)
 
             return (
               <article key={booking.id} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-slate-900">{booking.name}</h2>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-lg font-semibold text-slate-900">{booking.name}</h2>
+                      <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClasses(status)}`}>
+                        {getStatusLabel(status)}
+                      </span>
+                    </div>
                     <div className="mt-2 space-y-1 text-sm text-slate-600">
                       <p><span className="font-medium text-slate-700">Date:</span> {booking.date}</p>
                       <p><span className="font-medium text-slate-700">Time:</span> {booking.time}</p>
                       <p><span className="font-medium text-slate-700">Duration:</span> {booking.duration} minutes</p>
-                      {booking.department && (
-                        <p><span className="font-medium text-slate-700">Department:</span> {booking.department}</p>
-                      )}
                       <p><span className="font-medium text-slate-700">Issue:</span> {booking.medicalIssue}</p>
                     </div>
                   </div>
 
-                  <div className="min-w-56 rounded-lg bg-amber-50 p-3 text-sm text-amber-700">
-                    <p className="font-medium">Edit window</p>
-                    <p className="mt-1 font-mono">{formatCountdown(booking.editableUntil)}</p>
+                  <div className={`min-w-56 rounded-lg p-3 text-sm ${
+                    status === 'pending' ? 'bg-amber-50 text-amber-700' : 'bg-slate-50 text-slate-600'
+                  }`}>
+                    <p className="font-medium">{status === 'pending' ? 'Edit window' : 'Approval status'}</p>
+                    <p className="mt-1 font-mono">
+                      {status === 'pending' ? formatCountdown(booking.editableUntil) : getStatusLabel(status)}
+                    </p>
                   </div>
                 </div>
 
@@ -124,7 +131,7 @@ export default function BookedPage() {
                   <button
                     type="button"
                     onClick={() => navigate(`/reservation?edit=${booking.id}`)}
-                    disabled={isExpired}
+                    disabled={!canEdit}
                     className="rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Edit
@@ -132,7 +139,7 @@ export default function BookedPage() {
                   <button
                     type="button"
                     onClick={() => cancelBooking(booking.id)}
-                    disabled={isExpired}
+                    disabled={!canEdit}
                     className="rounded-full border border-red-200 px-5 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Cancel

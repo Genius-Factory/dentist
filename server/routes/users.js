@@ -12,7 +12,7 @@ router.get('/', authenticate, syncUser, requireRole('admin'), async (req, res) =
 // Update user role (admin only)
 router.put('/:userId/role', authenticate, syncUser, requireRole('admin'), async (req, res) => {
   const { role } = req.body;
-  if (!['admin', 'librarian', 'member'].includes(role)) {
+  if (!['admin', 'librarian', 'member', 'secretary'].includes(role)) {
     return res.status(400).json({ error: 'Invalid role' });
   }
   // Update in Clerk metadata

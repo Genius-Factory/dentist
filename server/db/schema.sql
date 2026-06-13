@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   id         VARCHAR(255) PRIMARY KEY,            -- Clerk user ID
   username   VARCHAR(255) UNIQUE,
   email      VARCHAR(255) UNIQUE NOT NULL,
-  role       VARCHAR(50)  DEFAULT 'member',       -- 'admin' | 'librarian' | 'member'
+  role       VARCHAR(50)  DEFAULT 'member',       -- 'admin' | 'librarian' | 'member' | 'secretary'
   created_at TIMESTAMP    DEFAULT NOW()
 );
 

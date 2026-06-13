@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { UserButton, useUser, SignedIn, SignedOut } from '@clerk/clerk-react'
 import { Menu, X, LogIn } from 'lucide-react'
+import { isSecretaryRole } from '../lib/bookings'
 // import { useCart } from '../contexts/CartContext'
 
 export default function Navbar() {
   const { user } = useUser()
   const role = user?.publicMetadata?.role || 'member'
+  const isSecretary = isSecretaryRole(role)
   const loc = useLocation()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -23,14 +25,16 @@ export default function Navbar() {
          Home
       </Link>
       <SignedIn>
-        <Link to="/reservation" onClick={() => setMobileOpen(false)}
-         className={`flex items-center gap-2 text-sm py-1 ${active('/reservation')}`}>
-           Reservation
-        </Link>
         <Link to="/booked" onClick={() => setMobileOpen(false)}
          className={`flex items-center gap-2 text-sm py-1 ${active('/booked')}`}>
            Booked
         </Link>
+        {isSecretary && (
+          <Link to="/secretary/appointments" onClick={() => setMobileOpen(false)}
+           className={`flex items-center gap-2 text-sm py-1 ${active('/secretary/appointments')}`}>
+             Approvals
+          </Link>
+        )}
       </SignedIn>
     </>
   )
