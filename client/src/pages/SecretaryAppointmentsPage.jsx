@@ -63,7 +63,7 @@ export default function SecretaryAppointmentsPage() {
 
   if (!isLoaded) {
     return (
-      <div className="mx-auto max-w-3xl rounded-lg border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">
+      <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">
         Loading appointments...
       </div>
     )
@@ -75,7 +75,7 @@ export default function SecretaryAppointmentsPage() {
 
   if (!isSecretary) {
     return (
-      <div className="mx-auto max-w-2xl rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
         <h1 className="text-2xl font-semibold text-slate-900">Secretary access only</h1>
         <p className="mt-2 text-slate-600">Appointment approvals are available to secretary accounts.</p>
         <Link
@@ -89,7 +89,10 @@ export default function SecretaryAppointmentsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="min-h-full" style={{
+      background: `radial-gradient(circle at 8% 18%, rgba(125,211,252,0.18), transparent 22%), radial-gradient(circle at 92% 50%, rgba(59,130,246,0.10), transparent 28%), linear-gradient(180deg, #fbfdff 0%, #f7fbff 46%, #ffffff 100%)`
+    }}>
+      <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">Appointment Approvals</h1>
@@ -104,22 +107,22 @@ export default function SecretaryAppointmentsPage() {
       </div>
 
       <div className="mb-5 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-700">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-700">
           <p className="text-sm font-medium">Pending</p>
           <p className="mt-1 text-2xl font-semibold">{counts.pending}</p>
         </div>
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-700">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700">
           <p className="text-sm font-medium">Approved</p>
           <p className="mt-1 text-2xl font-semibold">{counts.approved}</p>
         </div>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
           <p className="text-sm font-medium">Declined</p>
           <p className="mt-1 text-2xl font-semibold">{counts.declined}</p>
         </div>
       </div>
 
       {bookings.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
           <h2 className="text-xl font-semibold text-slate-900">No appointments sent yet</h2>
           <p className="mt-2 text-slate-600">Client requests will appear here when they are submitted.</p>
         </div>
@@ -129,7 +132,7 @@ export default function SecretaryAppointmentsPage() {
             const status = getBookingStatus(booking)
 
             return (
-              <article key={booking.id} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <article key={booking.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -178,5 +181,6 @@ export default function SecretaryAppointmentsPage() {
         </div>
       )}
     </div>
-  )
+  </div>
+)
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { UserButton, useUser, SignedIn, SignedOut } from '@clerk/clerk-react'
-import { Menu, X, LogIn } from 'lucide-react'
+import { CalendarCheck, ClipboardCheck, Home, LogIn, Menu, X } from 'lucide-react'
 import { isSecretaryRole } from '../lib/bookings'
 // import { useCart } from '../contexts/CartContext'
 
@@ -15,95 +15,131 @@ export default function Navbar() {
 
   const active = (path) =>
     loc.pathname === path
-      ? 'text-blue-600 font-semibold'
-      : 'text-gray-600 hover:text-blue-600'
+      ? 'bg-blue-50 text-blue-700 font-semibold'
+      : 'text-gray-600 hover:bg-gray-50 hover:text-blue-700'
+
+  const labelClass = 'whitespace-nowrap md:max-w-0 md:overflow-hidden md:opacity-0 md:transition-all md:duration-200 md:group-hover/sidebar:max-w-40 md:group-hover/sidebar:opacity-100'
 
   const navLinks = (
-    <>
-      <Link to="/" onClick={() => setMobileOpen(false)}
-       className={`flex items-center gap-2 text-sm py-1 ${active('/')}`}>
-         Home
+    <div className="flex flex-col gap-1">
+      <Link
+        to="/"
+        onClick={() => setMobileOpen(false)}
+        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active('/')}`}
+      >
+        <Home size={18} className="shrink-0" />
+        <span className={labelClass}>Home</span>
       </Link>
       <SignedIn>
-        <Link to="/booked" onClick={() => setMobileOpen(false)}
-         className={`flex items-center gap-2 text-sm py-1 ${active('/booked')}`}>
-           Booked
+        <Link
+          to="/booked"
+          onClick={() => setMobileOpen(false)}
+          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active('/booked')}`}
+        >
+          <CalendarCheck size={18} className="shrink-0" />
+          <span className={labelClass}>Booked</span>
         </Link>
         {isSecretary && (
-          <Link to="/secretary/appointments" onClick={() => setMobileOpen(false)}
-           className={`flex items-center gap-2 text-sm py-1 ${active('/secretary/appointments')}`}>
-             Approvals
+          <Link
+            to="/secretary/appointments"
+            onClick={() => setMobileOpen(false)}
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active('/secretary/appointments')}`}
+          >
+            <ClipboardCheck size={18} className="shrink-0" />
+            <span className={labelClass}>Approvals</span>
           </Link>
         )}
       </SignedIn>
-    </>
+    </div>
+  )
+
+  const accountControls = (
+    <div className="border-t pt-4">
+      <SignedIn>
+        <div className="flex items-center justify-between gap-3 md:justify-center md:group-hover/sidebar:justify-between">
+          <span className="hidden text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full capitalize md:group-hover/sidebar:inline-block">{role}</span>
+          <UserButton afterSignOutUrl="/" />
+        </div>
+      </SignedIn>
+      <SignedOut>
+        <button
+          onClick={() => {
+            setMobileOpen(false)
+            navigate('/sign-in')
+          }}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+        >
+          <LogIn size={16} className="shrink-0" />
+          <span className={labelClass}>Sign In</span>
+        </button>
+      </SignedOut>
+    </div>
   )
 
   return (
-    <nav className="bg-white shadow-sm border-b sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 text-lg font-bold text-blue-700 shrink-0">
+    <>
+      <header className="fixed inset-x-0 top-0 z-40 flex h-16 items-center justify-between border-b bg-white px-4 shadow-sm md:hidden">
+        <Link to="/" className="text-lg font-bold text-blue-700">
           Dentist
         </Link>
-
-        {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-6">
-          {navLinks}
-        </div>
-
-        {/* Desktop right side */}
-        <div className="hidden md:flex items-center gap-3">
-          <SignedIn>
-            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full capitalize">{role}</span>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
-          <SignedOut>
-            <button
-              onClick={() => navigate('/sign-in')}
-              className="flex items-center gap-1.5 text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition font-medium"
-            >
-              <LogIn size={15} /> Sign In
-            </button>
-          </SignedOut>
-        </div>
-
-        {/* Mobile right side */}
-        <div className="flex md:hidden items-center gap-2">
+        <div className="flex items-center gap-2">
           <SignedIn>
             <UserButton afterSignOutUrl="/" />
           </SignedIn>
-          <SignedOut>
-            <button
-              onClick={() => navigate('/sign-in')}
-              className="flex items-center gap-1 text-sm bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition font-medium"
-            >
-              <LogIn size={14} /> Sign In
-            </button>
-          </SignedOut>
-          {/* Hamburger */}
           <button
-            onClick={() => setMobileOpen(o => !o)}
-            className="p-1.5 rounded-md text-gray-600 hover:bg-gray-100 transition"
+            onClick={() => setMobileOpen((open) => !open)}
+            className="rounded-lg p-2 text-gray-600 transition hover:bg-gray-100"
             aria-label="Toggle menu"
+            aria-expanded={mobileOpen}
           >
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Mobile dropdown */}
-      {mobileOpen && (
-        <div className="md:hidden bg-white border-t px-4 py-3 flex flex-col gap-3">
+      <aside className="group/sidebar fixed inset-y-0 left-0 z-40 hidden w-20 flex-col overflow-hidden border-r bg-white px-4 py-5 shadow-sm transition-[width] duration-200 hover:w-64 md:flex">
+        <Link to="/" className="mb-8 flex items-center gap-3 px-2 text-xl font-bold text-blue-700">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-base text-white">D</span>
+          <span className={labelClass}>Dentist</span>
+        </Link>
+        <nav className="flex flex-1 flex-col justify-between">
           {navLinks}
-          <SignedIn>
-            <div className="pt-2 border-t flex items-center gap-2">
-              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full capitalize">{role}</span>
+          {accountControls}
+        </nav>
+      </aside>
+
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <button
+            className="absolute inset-0 bg-gray-900/40"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close menu"
+          />
+          <aside className="relative flex h-full w-72 max-w-[85vw] flex-col bg-white px-4 py-5 shadow-xl">
+            <div className="mb-8 flex items-center justify-between">
+              <Link
+                to="/"
+                onClick={() => setMobileOpen(false)}
+                className="text-xl font-bold text-blue-700"
+              >
+                Dentist
+              </Link>
+              <button
+                onClick={() => setMobileOpen(false)}
+                className="rounded-lg p-2 text-gray-600 transition hover:bg-gray-100"
+                aria-label="Close menu"
+              >
+                <X size={22} />
+              </button>
             </div>
-          </SignedIn>
+            <nav className="flex flex-1 flex-col justify-between">
+              {navLinks}
+              {accountControls}
+            </nav>
+          </aside>
         </div>
       )}
-    </nav>
+    </>
   )
 }
 

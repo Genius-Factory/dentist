@@ -50,15 +50,22 @@ export default function BookedPage() {
 
   if (!isLoaded) {
     return (
-      <div className="mx-auto max-w-3xl rounded-lg border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">
+      <div className="min-h-full" style={{
+        background: `radial-gradient(circle at 8% 18%, rgba(125,211,252,0.18), transparent 22%), radial-gradient(circle at 92% 50%, rgba(59,130,246,0.10), transparent 28%), linear-gradient(180deg, #fbfdff 0%, #f7fbff 46%, #ffffff 100%)`
+      }}>
+      <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">
         Loading appointments...
+      </div>
       </div>
     )
   }
 
   if (!user) {
     return (
-      <div className="mx-auto max-w-2xl rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <div className="min-h-full" style={{
+        background: `radial-gradient(circle at 8% 18%, rgba(125,211,252,0.18), transparent 22%), radial-gradient(circle at 92% 50%, rgba(59,130,246,0.10), transparent 28%), linear-gradient(180deg, #fbfdff 0%, #f7fbff 46%, #ffffff 100%)`
+      }}>
+      <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
         <h1 className="text-2xl font-semibold text-slate-900">Sign in to view appointments</h1>
         <p className="mt-2 text-slate-600">Your booked appointments are connected to your account.</p>
         <Link
@@ -68,11 +75,15 @@ export default function BookedPage() {
           Sign In
         </Link>
       </div>
+      </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="min-h-full" style={{
+      background: `radial-gradient(circle at 8% 18%, rgba(125,211,252,0.18), transparent 22%), radial-gradient(circle at 92% 50%, rgba(59,130,246,0.10), transparent 28%), linear-gradient(180deg, #fbfdff 0%, #f7fbff 46%, #ffffff 100%)`
+    }}>
+      <div className="mx-auto flex max-w-4xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">Booked Appointments</h1>
@@ -82,14 +93,14 @@ export default function BookedPage() {
         </div>
         <Link
           to="/reservation"
-          className="inline-flex rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+          className="inline-flex whitespace-nowrap rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
         >
           New Appointment
         </Link>
       </div>
 
       {bookings.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
           <h2 className="text-xl font-semibold text-slate-900">No appointments booked yet</h2>
           <p className="mt-2 text-slate-600">Once you send a reservation, it will show here.</p>
         </div>
@@ -100,7 +111,7 @@ export default function BookedPage() {
             const canEdit = isBookingEditable(booking, now)
 
             return (
-              <article key={booking.id} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <article key={booking.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -117,7 +128,7 @@ export default function BookedPage() {
                     </div>
                   </div>
 
-                  <div className={`min-w-56 rounded-lg p-3 text-sm ${
+                  <div className={`min-w-56 rounded-2xl p-3 text-sm ${
                     status === 'pending' ? 'bg-amber-50 text-amber-700' : 'bg-slate-50 text-slate-600'
                   }`}>
                     <p className="font-medium">{status === 'pending' ? 'Edit window' : 'Approval status'}</p>
@@ -150,6 +161,7 @@ export default function BookedPage() {
           })}
         </div>
       )}
+    </div>
     </div>
   )
 }

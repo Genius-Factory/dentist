@@ -343,15 +343,22 @@ export default function ReservationPage() {
 
   if (!isLoaded) {
     return (
-      <div className="mx-auto max-w-2xl rounded-lg border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">
+      <div className="min-h-full" style={{
+        background: `radial-gradient(circle at 8% 18%, rgba(125,211,252,0.18), transparent 22%), radial-gradient(circle at 92% 50%, rgba(59,130,246,0.10), transparent 28%), linear-gradient(180deg, #fbfdff 0%, #f7fbff 46%, #ffffff 100%)`
+      }}>
+      <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">
         Loading reservation...
+      </div>
       </div>
     )
   }
 
   if (!user) {
     return (
-      <div className="mx-auto max-w-2xl rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <div className="min-h-full" style={{
+        background: `radial-gradient(circle at 8% 18%, rgba(125,211,252,0.18), transparent 22%), radial-gradient(circle at 92% 50%, rgba(59,130,246,0.10), transparent 28%), linear-gradient(180deg, #fbfdff 0%, #f7fbff 46%, #ffffff 100%)`
+      }}>
+      <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
         <h1 className="text-2xl font-semibold text-slate-900">Sign in to book an appointment</h1>
         <p className="mt-2 text-slate-600">
           Please sign in before entering reservation details so your appointment can be saved to your account.
@@ -371,11 +378,15 @@ export default function ReservationPage() {
           </Link>
         </div>
       </div>
+      </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="min-h-full" style={{
+      background: `radial-gradient(circle at 8% 18%, rgba(125,211,252,0.18), transparent 22%), radial-gradient(circle at 92% 50%, rgba(59,130,246,0.10), transparent 28%), linear-gradient(180deg, #fbfdff 0%, #f7fbff 46%, #ffffff 100%)`
+    }}>
+      <div className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
         <h1 className="text-3xl font-semibold text-slate-900">
           {editId ? 'Edit Appointment' : 'Book an Appointment'}
@@ -404,7 +415,7 @@ export default function ReservationPage() {
         ))}
       </div>
 
-      <form onSubmit={handleReview} className="space-y-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+      <form onSubmit={handleReview} className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         {step === 1 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Patient Information</h2>
@@ -420,7 +431,7 @@ export default function ReservationPage() {
                 value={formData.name}
                 onChange={handleChange}
                 required
-                className="mt-2 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="mt-2 block w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
                 placeholder="Your full name"
               />
               {errors.name && <p className="mt-2 text-sm text-red-600">{errors.name}</p>}
@@ -438,7 +449,7 @@ export default function ReservationPage() {
                 onChange={handleChange}
                 required
                 max={todayValue}
-                className="mt-2 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="mt-2 block w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
               />
               {Number.isInteger(derivedAge) && (
                 <p className="mt-2 text-sm text-slate-500">Age: {derivedAge}</p>
@@ -458,7 +469,7 @@ export default function ReservationPage() {
                   value={formData.guardianContact}
                   onChange={handleChange}
                   required
-                  className="mt-2 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  className="mt-2 block w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
                   placeholder="Guardian name and phone number"
                 />
                 {errors.guardianContact && (
@@ -482,10 +493,10 @@ export default function ReservationPage() {
                 required
                 rows={3}
                 placeholder="Describe your dental issue..."
-                className="mt-2 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="mt-2 block w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
               />
               {showEmergencyWarning && (
-                <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                   If this is a life-threatening emergency, do not book online. Call emergency services or go to the nearest emergency department.
                 </div>
               )}
@@ -505,7 +516,7 @@ export default function ReservationPage() {
                 value={formData.emergencyLevel}
                 onChange={handleChange}
                 required
-                className="mt-2 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="mt-2 block w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
               >
                 {EMERGENCY_LEVELS.map((level) => (
                   <option key={level.value} value={level.value}>
@@ -542,7 +553,7 @@ export default function ReservationPage() {
                     onClick={() =>
                       setFormData((prev) => ({ ...prev, duration: duration.value, time: '' }))
                     }
-                    className={`rounded-lg border p-4 text-center transition ${
+                    className={`rounded-2xl border p-4 text-center transition ${
                       Number(formData.duration) === duration.value
                         ? 'border-sky-500 bg-sky-50 text-sky-700'
                         : 'border-slate-200 hover:border-sky-300'
@@ -568,7 +579,7 @@ export default function ReservationPage() {
                 min={todayValue}
                 max={maxDateValue}
                 required
-                className="mt-2 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="mt-2 block w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
               />
               {dateError && <p className="mt-2 text-sm text-red-600">{dateError}</p>}
             </div>
@@ -584,7 +595,7 @@ export default function ReservationPage() {
                       setDateError('')
                       setFormData((prev) => ({ ...prev, date, time: '' }))
                     }}
-                    className={`rounded-lg border p-2 text-center text-sm transition ${
+                    className={`rounded-2xl border p-2 text-center text-sm transition ${
                       formData.date === date
                         ? 'border-sky-500 bg-sky-50 text-sky-700'
                         : 'border-slate-200 hover:border-sky-300'
@@ -609,7 +620,7 @@ export default function ReservationPage() {
                       key={time}
                       type="button"
                       onClick={() => setFormData((prev) => ({ ...prev, time }))}
-                      className={`rounded-lg border p-2 text-center text-sm transition ${
+                      className={`rounded-2xl border p-2 text-center text-sm transition ${
                         formData.time === time
                           ? 'border-sky-500 bg-sky-50 text-sky-700'
                           : 'border-slate-200 hover:border-sky-300'
@@ -644,7 +655,7 @@ export default function ReservationPage() {
         {step === 3 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Confirm Appointment</h2>
-            <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
               <p><span className="font-medium text-slate-700">Name:</span> {formData.name}</p>
               <p><span className="font-medium text-slate-700">Date of Birth:</span> {formData.dateOfBirth}</p>
               <p><span className="font-medium text-slate-700">Age:</span> {getAge(formData.dateOfBirth)}</p>
@@ -681,6 +692,7 @@ export default function ReservationPage() {
           </div>
         )}
       </form>
+    </div>
     </div>
   )
 }
