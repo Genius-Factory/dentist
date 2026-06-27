@@ -22,7 +22,7 @@ function Footer() {
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col pt-16 md:pl-20 md:pt-0">
       <Toaster position="top-right" />
       <Navbar />
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
