@@ -29,6 +29,20 @@ export function isBookingEditable(booking, now = Date.now()) {
   return getBookingStatus(booking) === 'pending' && new Date(booking.editableUntil).getTime() > now
 }
 
+export function getAppointmentTimestamp(booking) {
+  return new Date(`${booking.date}T${booking.time || '00:00'}`).getTime()
+}
+
+export function isArchivedBooking(booking, now = Date.now()) {
+  const status = getBookingStatus(booking)
+
+  if (status === 'declined') return true
+  if (status !== 'approved') return false
+
+  const appointmentTime = getAppointmentTimestamp(booking)
+  return Number.isFinite(appointmentTime) && appointmentTime < now
+}
+
 export function getStatusLabel(status) {
   if (status === 'pending') return 'Pending approval'
   if (status === 'declined') return 'Declined'

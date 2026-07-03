@@ -6,6 +6,7 @@ import {
   getStatusClasses,
   getStatusLabel,
   getStoredBookings,
+  isArchivedBooking,
   isSecretaryRole,
   saveStoredBookings,
 } from '../lib/bookings'
@@ -21,24 +22,36 @@ function sortByAppointmentDate(bookings) {
 export default function SecretaryAppointmentsPage() {
   const { user, isLoaded } = useUser()
   const [bookings, setBookings] = useState([])
+  const [showArchived, setShowArchived] = useState(false)
   const role = user?.publicMetadata?.role || 'member'
   const isSecretary = isSecretaryRole(role)
+  const now = Date.now()
 
   useEffect(() => {
     if (!isLoaded || !user || !isSecretary) return
     setBookings(sortByAppointmentDate(getStoredBookings()))
   }, [isLoaded, isSecretary, user])
 
+  const activeBookings = useMemo(
+    () => bookings.filter((booking) => !isArchivedBooking(booking, now)),
+    [bookings, now],
+  )
+  const archivedBookings = useMemo(
+    () => bookings.filter((booking) => isArchivedBooking(booking, now)),
+    [bookings, now],
+  )
+  const visibleBookings = showArchived ? archivedBookings : activeBookings
+
   const counts = useMemo(
     () =>
-      bookings.reduce(
+      activeBookings.reduce(
         (totals, booking) => {
           totals[getBookingStatus(booking)] += 1
           return totals
         },
         { pending: 0, approved: 0, declined: 0 },
       ),
-    [bookings],
+    [activeBookings],
   )
 
   const updateStatus = (id, status) => {
@@ -89,23 +102,37 @@ export default function SecretaryAppointmentsPage() {
   }
 
   return (
-    <div className="min-h-full" style={{
-      background: `radial-gradient(circle at 8% 18%, rgba(125,211,252,0.18), transparent 22%), radial-gradient(circle at 92% 50%, rgba(59,130,246,0.10), transparent 28%), linear-gradient(180deg, #fbfdff 0%, #f7fbff 46%, #ffffff 100%)`
-    }}>
+    <div className="min-h-full">
       <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900">Appointment Approvals</h1>
-          <p className="mt-2 text-slate-600">Review sent appointment requests and approve or decline them.</p>
+          <h1 className="text-3xl font-semibold text-slate-900">
+            {showArchived ? 'Archived Appointments' : 'Appointment Approvals'}
+          </h1>
+          <p className="mt-2 text-slate-600">
+            {showArchived
+              ? 'Review declined appointments and approved appointments whose date has already passed.'
+              : 'Review sent appointment requests and approve or decline them.'}
+          </p>
         </div>
-        <Link
-          to="/reservation"
-          className="inline-flex rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-        >
-          Add Appointment
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => setShowArchived((current) => !current)}
+            className="inline-flex rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            {showArchived ? 'Active Appointments' : 'Archives'}
+          </button>
+          <Link
+            to="/reservation"
+            className="inline-flex rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+          >
+            Add Appointment
+          </Link>
+        </div>
       </div>
 
+      {!showArchived && (
       <div className="mb-5 grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-700">
           <p className="text-sm font-medium">Pending</p>
@@ -120,15 +147,46 @@ export default function SecretaryAppointmentsPage() {
           <p className="mt-1 text-2xl font-semibold">{counts.declined}</p>
         </div>
       </div>
+      )}
 
-      {bookings.length === 0 ? (
+      {visibleBookings.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">No appointments sent yet</h2>
-          <p className="mt-2 text-slate-600">Client requests will appear here when they are submitted.</p>
+          <h2 className="text-xl font-semibold text-slate-900">
+            {showArchived ? 'No archived appointments' : 'No active appointments'}
+          </h2>
+          <p className="mt-2 text-slate-600">
+            {showArchived
+              ? 'Declined appointments and past approved appointments will show here.'
+              : 'Client requests will appear here when they are submitted.'}
+          </p>
+        </div>
+      ) : showArchived ? (
+        <div className="space-y-3">
+          {visibleBookings.map((booking) => {
+            const status = getBookingStatus(booking)
+
+            return (
+              <article key={booking.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 text-left">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                      <h2 className="text-base font-semibold text-slate-900">{booking.name}</h2>
+                      <p className="text-sm text-slate-500">{booking.date}</p>
+                    </div>
+                    <p className="mt-1 truncate text-sm text-slate-600">{booking.medicalIssue}</p>
+                  </div>
+                  <span className={`w-fit rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClasses(status)}`}>
+                    {getStatusLabel(status)}
+                  </span>
+                </div>
+              </article>
+            )
+          })}
         </div>
       ) : (
+        <>
         <div className="space-y-4">
-          {bookings.map((booking) => {
+          {visibleBookings.map((booking) => {
             const status = getBookingStatus(booking)
 
             return (
@@ -179,6 +237,10 @@ export default function SecretaryAppointmentsPage() {
             )
           })}
         </div>
+        <div className="rounded-2xl border border-sky-100 bg-sky-50/80 p-4 text-sm text-sky-800">
+          Approved appointments whose date has passed and declined appointments will be hidden in the Archives tab.
+        </div>
+        </>
       )}
     </div>
   </div>

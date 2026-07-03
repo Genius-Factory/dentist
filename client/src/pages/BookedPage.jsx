@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useUser } from '@clerk/clerk-react'
 import {
@@ -6,6 +6,7 @@ import {
   getStatusClasses,
   getStatusLabel,
   getStoredBookings,
+  isArchivedBooking,
   isBookingEditable,
   saveStoredBookings,
 } from '../lib/bookings'
@@ -29,6 +30,7 @@ export default function BookedPage() {
   const { user, isLoaded } = useUser()
   const [bookings, setBookings] = useState([])
   const [now, setNow] = useState(Date.now())
+  const [showArchived, setShowArchived] = useState(false)
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000)
@@ -48,11 +50,19 @@ export default function BookedPage() {
     setBookings(nextBookings.filter((booking) => booking.userId === user.id))
   }
 
+  const activeBookings = useMemo(
+    () => bookings.filter((booking) => !isArchivedBooking(booking, now)),
+    [bookings, now],
+  )
+  const archivedBookings = useMemo(
+    () => bookings.filter((booking) => isArchivedBooking(booking, now)),
+    [bookings, now],
+  )
+  const visibleBookings = showArchived ? archivedBookings : activeBookings
+
   if (!isLoaded) {
     return (
-      <div className="min-h-full" style={{
-        background: `radial-gradient(circle at 8% 18%, rgba(125,211,252,0.18), transparent 22%), radial-gradient(circle at 92% 50%, rgba(59,130,246,0.10), transparent 28%), linear-gradient(180deg, #fbfdff 0%, #f7fbff 46%, #ffffff 100%)`
-      }}>
+      <div className="min-h-full">
       <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">
         Loading appointments...
       </div>
@@ -62,9 +72,7 @@ export default function BookedPage() {
 
   if (!user) {
     return (
-      <div className="min-h-full" style={{
-        background: `radial-gradient(circle at 8% 18%, rgba(125,211,252,0.18), transparent 22%), radial-gradient(circle at 92% 50%, rgba(59,130,246,0.10), transparent 28%), linear-gradient(180deg, #fbfdff 0%, #f7fbff 46%, #ffffff 100%)`
-      }}>
+      <div className="min-h-full">
       <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
         <h1 className="text-2xl font-semibold text-slate-900">Sign in to view appointments</h1>
         <p className="mt-2 text-slate-600">Your booked appointments are connected to your account.</p>
@@ -80,33 +88,73 @@ export default function BookedPage() {
   }
 
   return (
-    <div className="min-h-full" style={{
-      background: `radial-gradient(circle at 8% 18%, rgba(125,211,252,0.18), transparent 22%), radial-gradient(circle at 92% 50%, rgba(59,130,246,0.10), transparent 28%), linear-gradient(180deg, #fbfdff 0%, #f7fbff 46%, #ffffff 100%)`
-    }}>
+    <div className="min-h-full">
       <div className="mx-auto flex max-w-4xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900">Booked Appointments</h1>
+          <h1 className="text-3xl font-semibold text-slate-900">
+            {showArchived ? 'Archived Appointments' : 'Booked Appointments'}
+          </h1>
           <p className="mt-2 text-slate-600">
-            Track approval status. Pending requests can be edited or canceled during their 24-hour window.
+            {showArchived
+              ? 'Review declined appointments and approved appointments whose date has already passed.'
+              : 'Track approval status. Pending requests can be edited or canceled during their 24-hour window.'}
           </p>
         </div>
-        <Link
-          to="/reservation"
-          className="inline-flex whitespace-nowrap rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-        >
-          New Appointment
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => setShowArchived((current) => !current)}
+            className="inline-flex whitespace-nowrap rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            {showArchived ? 'Active Appointments' : 'Archives'}
+          </button>
+          <Link
+            to="/reservation"
+            className="inline-flex whitespace-nowrap rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+          >
+            New Appointment
+          </Link>
+        </div>
       </div>
 
-      {bookings.length === 0 ? (
+      {visibleBookings.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">No appointments booked yet</h2>
-          <p className="mt-2 text-slate-600">Once you send a reservation, it will show here.</p>
+          <h2 className="text-xl font-semibold text-slate-900">
+            {showArchived ? 'No archived appointments' : 'No active appointments'}
+          </h2>
+          <p className="mt-2 text-slate-600">
+            {showArchived
+              ? 'Declined appointments and past approved appointments will show here.'
+              : 'Once you send a reservation, it will show here.'}
+          </p>
+        </div>
+      ) : showArchived ? (
+        <div className="space-y-3">
+          {visibleBookings.map((booking) => {
+            const status = getBookingStatus(booking)
+
+            return (
+              <article key={booking.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 text-left">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                      <h2 className="text-base font-semibold text-slate-900">{booking.name}</h2>
+                      <p className="text-sm text-slate-500">{booking.date}</p>
+                    </div>
+                    <p className="mt-1 truncate text-sm text-slate-600">{booking.medicalIssue}</p>
+                  </div>
+                  <span className={`w-fit rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClasses(status)}`}>
+                    {getStatusLabel(status)}
+                  </span>
+                </div>
+              </article>
+            )
+          })}
         </div>
       ) : (
         <div className="space-y-4">
-          {bookings.map((booking) => {
+          {visibleBookings.map((booking) => {
             const status = getBookingStatus(booking)
             const canEdit = isBookingEditable(booking, now)
 
@@ -159,6 +207,11 @@ export default function BookedPage() {
               </article>
             )
           })}
+        </div>
+      )}
+      {!showArchived && (
+        <div className="rounded-2xl border border-sky-100 bg-sky-50/80 p-4 text-sm text-sky-800">
+          Approved appointments whose date has passed and declined appointments will be hidden in the Archives tab.
         </div>
       )}
     </div>
