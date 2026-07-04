@@ -343,9 +343,7 @@ export default function ReservationPage() {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-full" style={{
-        background: `radial-gradient(circle at 8% 18%, rgba(125,211,252,0.18), transparent 22%), radial-gradient(circle at 92% 50%, rgba(59,130,246,0.10), transparent 28%), linear-gradient(180deg, #fbfdff 0%, #f7fbff 46%, #ffffff 100%)`
-      }}>
+      <div className="min-h-full">
       <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">
         Loading reservation...
       </div>
@@ -355,9 +353,7 @@ export default function ReservationPage() {
 
   if (!user) {
     return (
-      <div className="min-h-full" style={{
-        background: `radial-gradient(circle at 8% 18%, rgba(125,211,252,0.18), transparent 22%), radial-gradient(circle at 92% 50%, rgba(59,130,246,0.10), transparent 28%), linear-gradient(180deg, #fbfdff 0%, #f7fbff 46%, #ffffff 100%)`
-      }}>
+      <div className="min-h-full">
       <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
         <h1 className="text-2xl font-semibold text-slate-900">Sign in to book an appointment</h1>
         <p className="mt-2 text-slate-600">
@@ -383,9 +379,7 @@ export default function ReservationPage() {
   }
 
   return (
-    <div className="min-h-full" style={{
-      background: `radial-gradient(circle at 8% 18%, rgba(125,211,252,0.18), transparent 22%), radial-gradient(circle at 92% 50%, rgba(59,130,246,0.10), transparent 28%), linear-gradient(180deg, #fbfdff 0%, #f7fbff 46%, #ffffff 100%)`
-    }}>
+    <div className="min-h-full">
       <div className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
         <h1 className="text-3xl font-semibold text-slate-900">

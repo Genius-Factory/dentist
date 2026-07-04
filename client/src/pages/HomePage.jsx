@@ -1,4 +1,4 @@
-import { CalendarCheck, ShieldCheck, Sparkles } from 'lucide-react'
+import { ShieldCheck } from 'lucide-react'
 import heroTooth from '../assets/hero-tooth.png'
 
 const stats = [
@@ -10,12 +10,23 @@ const stats = [
 
 export default function HomePage() {
   return (
-    <div className="min-h-full" style={{
-      background: `radial-gradient(circle at 8% 18%, rgba(125,211,252,0.18), transparent 22%), radial-gradient(circle at 92% 50%, rgba(59,130,246,0.10), transparent 28%), linear-gradient(180deg, #fbfdff 0%, #f7fbff 46%, #ffffff 100%)`
-    }}>
+    <div className="min-h-full">
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
+        <div className="relative">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-10 top-14 z-0 h-20 w-72 rotate-[17deg] opacity-75 drop-shadow-2xl sm:-right-16 md:top-20 md:h-24 md:w-96"
+          >
+            <div className="absolute inset-[-20%] rounded-full bg-cyan-200/25 blur-3xl" />
+            <div className="absolute left-0 top-1/2 h-7 w-[80%] -translate-y-1/2 rounded-full bg-sky-300 shadow-inner shadow-white/60" />
+            <div className="absolute left-5 top-1/2 h-3 w-[52%] -translate-y-1/2 rounded-full bg-white/80" />
+            <div className="absolute right-0 top-1/2 h-16 w-24 -translate-y-1/2 rounded-2xl bg-white shadow-inner shadow-sky-100" />
+            <div className="absolute right-5 top-1 h-12 w-3 rounded-full bg-cyan-200" />
+            <div className="absolute right-10 top-1 h-12 w-3 rounded-full bg-sky-400" />
+            <div className="absolute right-16 top-1 h-12 w-3 rounded-full bg-cyan-300" />
+          </div>
         <section
-          className="relative overflow-hidden bg-white"
+          className="relative z-10 overflow-hidden bg-white"
           style={{ height: 680, borderRadius: '48px', boxShadow: '0 40px 120px -60px rgba(14,165,233,0.12)' }}
         >
           <div
@@ -102,6 +113,7 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+        </div>
 
         <section id="clinic-stats" className="rounded-[2rem] p-6 sm:p-8 lg:p-10" style={{ marginTop: '32px', boxShadow: '0 30px 90px -55px rgba(59, 130, 246, 0.25)' }}>
           {/* 2x2 Grid for main stats */}
