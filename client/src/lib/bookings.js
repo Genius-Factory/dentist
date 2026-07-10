@@ -21,6 +21,11 @@ export function isSecretaryRole(role) {
   return normalizeRole(role) === 'secretary'
 }
 
+export function isStaffRole(role) {
+  const normalizedRole = normalizeRole(role)
+  return normalizedRole === 'secretary' || normalizedRole === 'admin'
+}
+
 export function getBookingStatus(booking) {
   return booking.status || 'approved'
 }

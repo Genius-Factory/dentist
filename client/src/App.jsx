@@ -7,6 +7,7 @@ import SignUpPage from './pages/SignUpPage'
 import ReservationPage from './pages/ReservationPage'
 import BookedPage from './pages/BookedPage'
 import SecretaryAppointmentsPage from './pages/SecretaryAppointmentsPage'
+import PatientDetailsPage from './pages/PatientDetailsPage'
 import DentalPageDecor from './components/DentalPageDecor'
 
 function Footer() {
@@ -42,6 +43,8 @@ export default function App() {
             <Route path="/sign-up" element={<SignUpPage />} />
             <Route path="/reservation" element={<ReservationPage />} />
             <Route path="/booked" element={<BookedPage />} />
+            <Route path="/patients" element={<PatientDetailsPage />} />
+            <Route path="/patients/:profileId" element={<PatientDetailsPage />} />
             <Route path="/secretary/appointments" element={<SecretaryAppointmentsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

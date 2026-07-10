@@ -10,6 +10,7 @@ import {
   isSecretaryRole,
   saveStoredBookings,
 } from '../lib/bookings'
+import { assignMissingBookingProfiles, findProfileForBooking, getStoredPatientProfiles } from '../lib/patientProfiles'
 
 function sortByAppointmentDate(bookings) {
   return [...bookings].sort((a, b) => {
@@ -29,7 +30,12 @@ export default function SecretaryAppointmentsPage() {
 
   useEffect(() => {
     if (!isLoaded || !user || !isSecretary) return
-    setBookings(sortByAppointmentDate(getStoredBookings()))
+    const { bookings: assignedBookings, changed } = assignMissingBookingProfiles(
+      getStoredBookings(),
+      getStoredPatientProfiles(),
+    )
+    if (changed) saveStoredBookings(assignedBookings)
+    setBookings(sortByAppointmentDate(assignedBookings))
   }, [isLoaded, isSecretary, user])
 
   const activeBookings = useMemo(
@@ -188,6 +194,7 @@ export default function SecretaryAppointmentsPage() {
         <div className="space-y-4">
           {visibleBookings.map((booking) => {
             const status = getBookingStatus(booking)
+            const profile = findProfileForBooking(getStoredPatientProfiles(), booking)
 
             return (
               <article key={booking.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -215,6 +222,14 @@ export default function SecretaryAppointmentsPage() {
                   </div>
 
                   <div className="flex min-w-56 flex-wrap gap-2 lg:justify-end">
+                    {profile && (
+                      <Link
+                        to={`/patients/${profile.id}`}
+                        className="rounded-full border border-sky-200 px-5 py-2.5 text-sm font-semibold text-sky-700 transition hover:bg-sky-50"
+                      >
+                        Patient Details
+                      </Link>
+                    )}
                     <button
                       type="button"
                       onClick={() => updateStatus(booking.id, 'approved')}

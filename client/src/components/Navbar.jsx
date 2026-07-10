@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { UserButton, useUser, SignedIn, SignedOut } from '@clerk/clerk-react'
-import { CalendarCheck, ClipboardCheck, Home, LogIn, Menu, X } from 'lucide-react'
+import { CalendarCheck, ClipboardCheck, Home, LogIn, Menu, Users, X } from 'lucide-react'
 import { isSecretaryRole } from '../lib/bookings'
 // import { useCart } from '../contexts/CartContext'
 
@@ -38,6 +38,14 @@ export default function Navbar() {
         >
           <CalendarCheck size={18} className="shrink-0" />
           <span className={labelClass}>Booked</span>
+        </Link>
+        <Link
+          to="/patients"
+          onClick={() => setMobileOpen(false)}
+          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active('/patients')}`}
+        >
+          <Users size={18} className="shrink-0" />
+          <span className={labelClass}>{isSecretary ? 'Patients' : 'Profiles'}</span>
         </Link>
         {isSecretary && (
           <Link

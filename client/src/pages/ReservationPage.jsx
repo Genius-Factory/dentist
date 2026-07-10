@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useUser } from '@clerk/clerk-react'
@@ -8,6 +9,13 @@ import {
   isSecretaryRole,
   saveStoredBookings,
 } from '../lib/bookings'
+import {
+  assignMissingBookingProfiles,
+  getAge,
+  getFullName,
+  getStoredPatientProfiles,
+  profileToBookingFields,
+} from '../lib/patientProfiles'
 
 const OPEN_TIME = '08:00'
 const CLOSE_TIME = '17:00'
@@ -127,18 +135,6 @@ function getBusinessDaysForMonth() {
   return dates
 }
 
-function getAge(dateOfBirth) {
-  if (!dateOfBirth) return ''
-  const birthDate = new Date(`${dateOfBirth}T00:00:00`)
-  const today = new Date()
-  let age = today.getFullYear() - birthDate.getFullYear()
-  const monthDiff = today.getMonth() - birthDate.getMonth()
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-    age -= 1
-  }
-  return age
-}
-
 function normalizeText(value) {
   return value.trim().toLowerCase()
 }
@@ -196,6 +192,7 @@ function validateAppointmentForm(form) {
 }
 
 const emptyForm = {
+  profileId: '',
   name: '',
   dateOfBirth: '',
   guardianContact: '',
@@ -204,6 +201,16 @@ const emptyForm = {
   duration: 30,
   date: '',
   time: '',
+}
+
+function SectionDivider({ label }) {
+  return (
+    <div className="flex items-center gap-4">
+      <div className="h-px flex-1 bg-slate-200" />
+      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{label}</span>
+      <div className="h-px flex-1 bg-slate-200" />
+    </div>
+  )
 }
 
 export default function ReservationPage() {
@@ -218,6 +225,8 @@ export default function ReservationPage() {
   const [step, setStep] = useState(1)
   const [dateError, setDateError] = useState('')
   const [errors, setErrors] = useState({})
+  const [profiles, setProfiles] = useState([])
+  const [showProfileModal, setShowProfileModal] = useState(false)
 
   const businessDays = useMemo(() => getBusinessDaysForMonth(), [])
   const todayValue = toDateInputValue(new Date())
@@ -228,9 +237,25 @@ export default function ReservationPage() {
   const showEmergencyWarning = hasKeyword(normalizeText(formData.medicalIssue), lifeThreateningKeywords)
 
   useEffect(() => {
+    if (!isLoaded || !user) return
+
+    const storedProfiles = getStoredPatientProfiles().filter((profile) => profile.userId === user.id)
+    setProfiles(storedProfiles)
+
+    if (!editId && storedProfiles.length === 0) {
+      setShowProfileModal(true)
+    }
+  }, [editId, isLoaded, user])
+
+  useEffect(() => {
     if (!isLoaded || !user || !editId) return
 
-    const booking = getStoredBookings().find((item) => item.id === editId && item.userId === user.id)
+    const { bookings: assignedBookings, changed } = assignMissingBookingProfiles(
+      getStoredBookings(),
+      getStoredPatientProfiles(),
+    )
+    if (changed) saveStoredBookings(assignedBookings)
+    const booking = assignedBookings.find((item) => item.id === editId && item.userId === user.id)
 
     if (booking) {
       if (!isBookingEditable(booking)) {
@@ -239,6 +264,7 @@ export default function ReservationPage() {
       }
 
       setFormData({
+        profileId: booking.profileId || '',
         name: booking.name,
         dateOfBirth: booking.dateOfBirth,
         guardianContact: booking.guardianContact || '',
@@ -256,6 +282,17 @@ export default function ReservationPage() {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
     setErrors((prev) => ({ ...prev, [name]: '' }))
+  }
+
+  const handleProfileChange = (e) => {
+    const profileId = e.target.value
+    const selectedProfile = profiles.find((profile) => profile.id === profileId)
+
+    setErrors((prev) => ({ ...prev, profileId: '', name: '', dateOfBirth: '' }))
+    setFormData((prev) => ({
+      ...prev,
+      ...(selectedProfile ? profileToBookingFields(selectedProfile) : { profileId: '', name: '', dateOfBirth: '' }),
+    }))
   }
 
   const handleDateChange = (e) => {
@@ -277,29 +314,32 @@ export default function ReservationPage() {
     setFormData((prev) => ({ ...prev, date: value, time: '' }))
   }
 
-  const hasStep1RequiredFields =
-    formData.name &&
-    formData.dateOfBirth &&
+  const hasBookingRequiredFields =
+    formData.profileId &&
     formData.medicalIssue &&
-    formData.emergencyLevel
-  const isStep2Valid = formData.date && formData.time
+    formData.emergencyLevel &&
+    formData.date &&
+    formData.time
 
-  const handleContinueToCalendar = () => {
+  const handleReview = (e) => {
+    e.preventDefault()
+
+    if (profiles.length === 0) {
+      setShowProfileModal(true)
+      return
+    }
+
     const nextErrors = validateAppointmentForm(formData)
+    if (!formData.profileId) {
+      nextErrors.profileId = 'Please choose a patient profile.'
+    }
+    if (!formData.date || !formData.time) {
+      nextErrors.appointmentTime = 'Please choose an appointment date and time.'
+    }
     setErrors(nextErrors)
 
     if (Object.keys(nextErrors).length === 0) {
       setStep(2)
-    }
-  }
-
-  const handleReview = (e) => {
-    e.preventDefault()
-    const nextErrors = validateAppointmentForm(formData)
-    setErrors(nextErrors)
-
-    if (Object.keys(nextErrors).length === 0 && isStep2Valid) {
-      setStep(3)
     }
   }
 
@@ -380,7 +420,7 @@ export default function ReservationPage() {
 
   return (
     <div className="min-h-full">
-      <div className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
         <h1 className="text-3xl font-semibold text-slate-900">
           {editId ? 'Edit Appointment' : 'Book an Appointment'}
@@ -393,7 +433,7 @@ export default function ReservationPage() {
       </div>
 
       <div className="mb-6 flex items-center justify-center gap-2">
-        {[1, 2, 3].map((currentStep) => (
+        {[1, 2].map((currentStep) => (
           <div key={currentStep} className="flex items-center">
             <div
               className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
@@ -402,21 +442,70 @@ export default function ReservationPage() {
             >
               {currentStep}
             </div>
-            {currentStep < 3 && (
+            {currentStep < 2 && (
               <div className={`h-1 w-12 ${step > currentStep ? 'bg-slate-900' : 'bg-slate-200'}`} />
             )}
           </div>
         ))}
       </div>
 
-      <form onSubmit={handleReview} className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <form onSubmit={handleReview} className="space-y-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         {step === 1 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-slate-900">Patient Information</h2>
+          <div className="space-y-8">
+            <h2 className="text-lg font-semibold text-slate-900">Booking Details</h2>
 
-            <div>
+            <SectionDivider label="Patient Profile" />
+            <div className="space-y-5">
+              <div>
+              <div className="flex items-center justify-between gap-3">
+                <label htmlFor="profileId" className="block text-sm font-medium text-slate-700">
+                  Patient Profile <span className="text-red-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowProfileModal(true)}
+                  className="text-sm font-semibold text-sky-700 transition hover:text-sky-800"
+                >
+                  Add profile
+                </button>
+              </div>
+              <select
+                id="profileId"
+                name="profileId"
+                value={formData.profileId}
+                onChange={handleProfileChange}
+                required
+                className="mt-2 block w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              >
+                <option value="">Select a saved profile</option>
+                {profiles.map((profile) => (
+                  <option key={profile.id} value={profile.id}>
+                    {getFullName(profile)} {profile.dateOfBirth ? `- ${profile.dateOfBirth}` : ''}
+                  </option>
+                ))}
+              </select>
+              {errors.profileId && <p className="mt-2 text-sm text-red-600">{errors.profileId}</p>}
+              {profiles.length === 0 && (
+                <div className="mt-3 rounded-2xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800">
+                  Create a patient profile once, then select it here for future appointments.
+                </div>
+              )}
+              </div>
+
+            {formData.profileId && (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                <p><span className="font-medium text-slate-700">Name:</span> {formData.name}</p>
+                <p><span className="font-medium text-slate-700">Date of Birth:</span> {formData.dateOfBirth}</p>
+                {Number.isInteger(derivedAge) && (
+                  <p><span className="font-medium text-slate-700">Age:</span> {derivedAge}</p>
+                )}
+              </div>
+            )}
+            </div>
+
+            <div className="hidden">
               <label htmlFor="name" className="block text-sm font-medium text-slate-700">
-                Name <span className="text-red-500">*</span>
+                Name
               </label>
               <input
                 type="text"
@@ -431,9 +520,9 @@ export default function ReservationPage() {
               {errors.name && <p className="mt-2 text-sm text-red-600">{errors.name}</p>}
             </div>
 
-            <div>
+            <div className="hidden">
               <label htmlFor="dateOfBirth" className="block text-sm font-medium text-slate-700">
-                Date of Birth <span className="text-red-500">*</span>
+                Date of Birth
               </label>
               <input
                 type="date"
@@ -451,28 +540,30 @@ export default function ReservationPage() {
               {errors.dateOfBirth && <p className="mt-2 text-sm text-red-600">{errors.dateOfBirth}</p>}
             </div>
 
-            {Number.isInteger(derivedAge) && derivedAge < 18 && (
-              <div>
-                <label htmlFor="guardianContact" className="block text-sm font-medium text-slate-700">
-                  Guardian Contact <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="guardianContact"
-                  name="guardianContact"
-                  value={formData.guardianContact}
-                  onChange={handleChange}
-                  required
-                  className="mt-2 block w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                  placeholder="Guardian name and phone number"
-                />
-                {errors.guardianContact && (
-                  <p className="mt-2 text-sm text-red-600">{errors.guardianContact}</p>
-                )}
-              </div>
-            )}
+            <SectionDivider label="Medical Details" />
+            <div className="grid gap-5 lg:grid-cols-2">
+              {Number.isInteger(derivedAge) && derivedAge < 18 && (
+                <div className="lg:col-span-2">
+                  <label htmlFor="guardianContact" className="block text-sm font-medium text-slate-700">
+                    Guardian Contact <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="guardianContact"
+                    name="guardianContact"
+                    value={formData.guardianContact}
+                    onChange={handleChange}
+                    required
+                    className="mt-2 block w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    placeholder="Guardian name and phone number"
+                  />
+                  {errors.guardianContact && (
+                    <p className="mt-2 text-sm text-red-600">{errors.guardianContact}</p>
+                  )}
+                </div>
+              )}
 
-            <div>
+            <div className="lg:col-span-2">
               <label htmlFor="medicalIssue" className="block text-sm font-medium text-slate-700">
                 Medical Issue <span className="text-red-500">*</span>
               </label>
@@ -497,7 +588,7 @@ export default function ReservationPage() {
               {errors.medicalIssue && <p className="mt-2 text-sm text-red-600">{errors.medicalIssue}</p>}
             </div>
 
-            <div>
+            <div className="lg:col-span-2">
               <label htmlFor="emergencyLevel" className="block text-sm font-medium text-slate-700">
                 Emergency Level <span className="text-red-500">*</span>
               </label>
@@ -520,24 +611,13 @@ export default function ReservationPage() {
               </select>
               {errors.emergencyLevel && <p className="mt-2 text-sm text-red-600">{errors.emergencyLevel}</p>}
             </div>
+            </div>
 
-            <button
-              type="button"
-              onClick={handleContinueToCalendar}
-              disabled={!hasStep1RequiredFields}
-              className="w-full rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
-            >
-              Continue to Calendar
-            </button>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-slate-900">Select Date & Time</h2>
+            <SectionDivider label="Appointment Time" />
             <p className="text-sm text-slate-500">Available weekdays, 8:00 AM - 5:00 PM, up to 1 month ahead.</p>
 
-            <div>
+            <div className="grid gap-5 lg:grid-cols-2">
+            <div className="lg:col-span-2">
               <label className="block text-sm font-medium text-slate-700">Duration</label>
               <div className="mt-2 grid grid-cols-2 gap-3">
                 {DURATIONS.map((duration) => (
@@ -560,7 +640,7 @@ export default function ReservationPage() {
               </div>
             </div>
 
-            <div>
+            <div className="lg:col-span-2">
               <label htmlFor="date" className="block text-sm font-medium text-slate-700">
                 Appointment Date
               </label>
@@ -578,7 +658,7 @@ export default function ReservationPage() {
               {dateError && <p className="mt-2 text-sm text-red-600">{dateError}</p>}
             </div>
 
-            <div>
+            <div className="lg:col-span-2">
               <label className="block text-sm font-medium text-slate-700">Quick Weekday Picks</label>
               <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
                 {businessDays.slice(0, 10).map((date) => (
@@ -606,7 +686,7 @@ export default function ReservationPage() {
             </div>
 
             {formData.date && (
-              <div>
+              <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-slate-700">Appointment Time</label>
                 <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
                   {workingTimes.map((time) => (
@@ -626,19 +706,14 @@ export default function ReservationPage() {
                 </div>
               </div>
             )}
+            {errors.appointmentTime && <p className="lg:col-span-2 text-sm text-red-600">{errors.appointmentTime}</p>}
+            </div>
 
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="flex-1 rounded-full border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                Back
-              </button>
+            <div className="flex justify-end">
               <button
                 type="submit"
-                disabled={!isStep2Valid}
-                className="flex-1 rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+                disabled={!hasBookingRequiredFields}
+                className="w-full rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50 sm:w-auto"
               >
                 Review Booking
               </button>
@@ -646,7 +721,7 @@ export default function ReservationPage() {
           </div>
         )}
 
-        {step === 3 && (
+        {step === 2 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Confirm Appointment</h2>
             <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
@@ -670,7 +745,7 @@ export default function ReservationPage() {
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => setStep(2)}
+                onClick={() => setStep(1)}
                 className="flex-1 rounded-full border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 Back
@@ -686,6 +761,33 @@ export default function ReservationPage() {
           </div>
         )}
       </form>
+      {showProfileModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 py-6">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div className="text-left">
+                <h2 className="text-xl font-semibold text-slate-900">Create Patient Profile</h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Create a patient profile first, then return here and select it from the dropdown.
+                </p>
+              </div>
+              {profiles.length > 0 && (
+                <button type="button" onClick={() => setShowProfileModal(false)} className="rounded-full border border-slate-200 px-3 py-1 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                  Close
+                </button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/patients?create=1')}
+              className="mt-6 w-full rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              Go to Profiles
+            </button>
+          </div>
+        </div>
+      )}
     </div>
     </div>
   )
