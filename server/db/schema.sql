@@ -11,19 +11,10 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP    DEFAULT NOW()
 );
 
--- ============================================================
--- Seed: ensure a test user 'youniss' exists (idempotent)
 -- Ensure existing installations get the new `username` column
 ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(255);
 -- Add a unique index for username if it doesn't exist
 CREATE UNIQUE INDEX IF NOT EXISTS users_username_idx ON users(username);
-
-INSERT INTO users (id, username, email, role)
-VALUES ('youniss', 'youniss', 'younissjaafil@gmail.com', 'member')
-ON CONFLICT (id) DO UPDATE
-  SET username = EXCLUDED.username,
-      email = EXCLUDED.email,
-      role = EXCLUDED.role;
 
 -- ============================================================
 -- Indexes
