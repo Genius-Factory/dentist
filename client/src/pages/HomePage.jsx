@@ -10,12 +10,12 @@ const stats = [
 
 export default function HomePage() {
   return (
-    <div className="min-h-full">
-      <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
+    <div className="home-page min-h-full w-screen max-w-none md:w-full">
+      <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-1 px-[2px] py-1 sm:gap-8 sm:px-6 sm:py-8 lg:px-8">
         <div className="relative">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -right-10 top-14 z-0 h-20 w-72 rotate-[17deg] opacity-75 drop-shadow-2xl sm:-right-16 md:top-20 md:h-24 md:w-96"
+            className="pointer-events-none absolute -right-10 top-14 z-0 hidden h-20 w-72 rotate-[17deg] opacity-75 drop-shadow-2xl md:block md:-right-16 md:top-20 md:h-24 md:w-96"
           >
             <div className="absolute inset-[-20%] rounded-full bg-cyan-200/25 blur-3xl" />
             <div className="absolute left-0 top-1/2 h-7 w-[80%] -translate-y-1/2 rounded-full bg-sky-300 shadow-inner shadow-white/60" />
@@ -25,8 +25,45 @@ export default function HomePage() {
             <div className="absolute right-10 top-1 h-12 w-3 rounded-full bg-sky-400" />
             <div className="absolute right-16 top-1 h-12 w-3 rounded-full bg-cyan-300" />
           </div>
+        <section className="relative z-10 block w-full min-w-0 overflow-hidden rounded-[28px] bg-white shadow-[0_30px_80px_-45px_rgba(14,165,233,0.3)] md:hidden">
+          <img
+            aria-hidden="true"
+            src={heroTooth}
+            alt=""
+            className="absolute inset-x-0 top-0 h-[190px] w-full max-w-none scale-125 object-cover object-center"
+          />
+          <div className="absolute inset-x-0 top-0 h-[190px] bg-gradient-to-b from-white/90 via-white/40 to-white/10" />
+
+          <div className="relative z-10 p-5">
+            <div className="max-w-[275px]">
+              <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/85 px-3 py-1.5 text-[8px] font-semibold text-blue-700 shadow-sm backdrop-blur-sm">
+                <ShieldCheck size={14} />
+                Trusted care for your smile
+              </div>
+              <h1 className="mt-4 text-base font-semibold leading-tight text-slate-950">
+                Every smile deserves care,
+              </h1>
+              <p className="mt-3 text-[10px] leading-4 text-slate-700">
+                Gentle dental visits, clear treatment plans, and a calmer way to care for your oral health.
+              </p>
+            </div>
+
+            <div className="mt-[30px]">
+              <p className="text-base font-semibold leading-tight text-slate-950">
+                Yours does too! Book an appointment now at Dentist Clinic!
+              </p>
+              <a
+                href="/reservation"
+                className="mt-5 inline-flex justify-center rounded-full bg-blue-600 px-5 py-2.5 text-[10px] font-semibold text-white shadow-[0_18px_35px_-20px_rgba(37,99,235,0.9)] transition hover:bg-blue-700"
+              >
+                Book now
+              </a>
+            </div>
+          </div>
+        </section>
+
         <section
-          className="relative z-10 overflow-hidden bg-white"
+          className="desktop-hero relative z-10 hidden overflow-hidden bg-white md:block"
           style={{ height: 680, borderRadius: '48px', boxShadow: '0 40px 120px -60px rgba(14,165,233,0.12)' }}
         >
           <div
@@ -115,7 +152,7 @@ export default function HomePage() {
         </section>
         </div>
 
-        <section id="clinic-stats" className="rounded-[2rem] p-6 sm:p-8 lg:p-10" style={{ marginTop: '32px', boxShadow: '0 30px 90px -55px rgba(59, 130, 246, 0.25)' }}>
+        <section id="clinic-stats" className="mt-1 rounded-[2rem] p-6 sm:mt-8 sm:p-8 lg:p-10" style={{ boxShadow: '0 30px 90px -55px rgba(59, 130, 246, 0.25)' }}>
           {/* 2x2 Grid for main stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {stats.slice(0, 4).map((stat, index) => (

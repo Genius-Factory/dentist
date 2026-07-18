@@ -79,7 +79,7 @@ function ProfileForm({ initialProfile, onCancel, onSave }) {
         e.preventDefault()
         onSave(form)
       }}
-      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <SectionDivider label="Personal Details" />
@@ -111,9 +111,9 @@ function ProfileForm({ initialProfile, onCancel, onSave }) {
         <label className="text-sm font-medium text-slate-700 sm:col-span-2">Allergies <span className="font-normal text-slate-400">(optional)</span><input name="allergies" value={form.allergies} onChange={update} placeholder="Comma separated" className={fieldClass} /><span className="mt-2 block text-xs font-normal text-slate-500">Leave empty if you have no allergies.</span></label>
         <label className="text-sm font-medium text-slate-700 sm:col-span-2">Notes <span className="font-normal text-slate-400">(optional)</span><textarea name="notes" value={form.notes} onChange={update} rows={3} className={fieldClass} /></label>
       </div>
-      <div className="mt-6 flex flex-wrap justify-end gap-3">
-        <button type="button" onClick={onCancel} className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Cancel</button>
-        <button type="submit" disabled={!isFormComplete} className="rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">Save Details</button>
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
+        <button type="button" onClick={onCancel} className="w-full rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto">Cancel</button>
+        <button type="submit" disabled={!isFormComplete} className="w-full rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">Save Details</button>
       </div>
     </form>
   )
@@ -182,7 +182,7 @@ export default function PatientDetailsPage() {
 
   if (mode === 'edit' || mode === 'create') {
     return (
-      <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
         <button onClick={() => setMode('view')} className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-slate-900"><ArrowLeft size={18} /> Patient Details</button>
         <ProfileForm initialProfile={mode === 'create' ? emptyPatientProfile : selectedProfile || emptyPatientProfile} onCancel={() => setMode('view')} onSave={saveProfile} />
       </div>
@@ -214,33 +214,33 @@ export default function PatientDetailsPage() {
   const isSelectedMinor = Number.isInteger(selectedAge) && selectedAge < 18
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 overflow-x-hidden py-4 sm:px-2 sm:py-8 lg:px-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <button onClick={() => navigate(-1)} className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-slate-900"><ArrowLeft size={18} /> Back</button>
-          <h1 className="text-3xl font-semibold text-slate-950">Patient Details</h1>
+          <h1 className="text-2xl font-semibold text-slate-950 sm:text-3xl">Patient Details</h1>
           <p className="mt-2 text-sm text-slate-500">Patients / Patient Details</p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className="rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className="w-full rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 sm:w-auto">
             {profiles.map((profile) => <option key={profile.id} value={profile.id}>{getFullName(profile)}</option>)}
           </select>
           {canEdit && (
-            <button onClick={() => setMode('edit')} className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white px-5 py-2.5 text-sm font-semibold text-sky-700 transition hover:bg-sky-50"><Edit3 size={16} /> Edit Details</button>
+            <button onClick={() => setMode('edit')} className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-sky-200 bg-white px-5 py-2.5 text-sm font-semibold text-sky-700 transition hover:bg-sky-50 sm:w-auto"><Edit3 size={16} /> Edit Details</button>
           )}
           {canCreateProfile && (
-            <button onClick={() => setMode('create')} className="rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+            <button onClick={() => setMode('create')} className="w-full rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto">
               Create Profile
             </button>
           )}
-          <Link to="/reservation" className="inline-flex items-center gap-2 rounded-full bg-cyan-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-700"><Calendar size={16} /> Book Appointment</Link>
+          <Link to="/reservation" className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-cyan-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-700 sm:w-auto"><Calendar size={16} /> Book Appointment</Link>
         </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.05fr]">
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           <div className="flex flex-col gap-6 sm:flex-row">
-            <div className="flex h-36 w-36 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-100 to-cyan-200 text-4xl font-semibold text-cyan-800">{initials}</div>
+            <div className="flex h-28 w-28 shrink-0 items-center justify-center self-center rounded-full bg-gradient-to-br from-sky-100 to-cyan-200 text-3xl font-semibold text-cyan-800 sm:h-36 sm:w-36 sm:self-start sm:text-4xl">{initials}</div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -267,15 +267,15 @@ export default function PatientDetailsPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-5 flex items-center justify-between gap-3">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <h2 className="flex items-center gap-3 text-xl font-semibold text-slate-950"><Calendar className="text-blue-600" /> Upcoming Appointment</h2>
             <Link to="/booked" className="text-sm font-semibold text-blue-600 transition hover:text-blue-700">View Calendar</Link>
           </div>
           {upcomingAppointment ? (
             <div className="rounded-2xl border border-slate-200 p-5">
-              <div className="grid gap-5 sm:grid-cols-[88px_1fr_auto] sm:items-center">
-                <div className="border-r border-slate-200 text-center">
+                <div className="grid gap-5 sm:grid-cols-[88px_1fr_auto] sm:items-center">
+                  <div className="border-b border-slate-200 pb-4 text-center sm:border-b-0 sm:border-r sm:pb-0">
                   <p className="text-xs font-semibold uppercase text-slate-500">{new Date(`${upcomingAppointment.date}T00:00:00`).toLocaleDateString('en-US', { month: 'short' })}</p>
                   <p className="text-3xl font-semibold text-slate-950">{new Date(`${upcomingAppointment.date}T00:00:00`).getDate()}</p>
                   <p className="text-xs font-semibold uppercase text-slate-500">{new Date(`${upcomingAppointment.date}T00:00:00`).toLocaleDateString('en-US', { weekday: 'short' })}</p>
@@ -288,11 +288,29 @@ export default function PatientDetailsPage() {
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div className="flex flex-col gap-2 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-950"><ClipboardList size={18} /> Archives</h2>
             <Link to="/booked" className="text-sm font-semibold text-blue-600 transition hover:text-blue-700">View Appointments</Link>
           </div>
-          <div className="overflow-x-auto">
+          <div className="divide-y divide-slate-100 sm:hidden">
+            {archivedProfileBookings.map((booking) => (
+              <article key={booking.id} className="space-y-3 p-4 text-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Date</p>
+                    <p className="mt-1 font-medium text-slate-800">{formatDate(booking.date)}</p>
+                  </div>
+                  <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClasses(getBookingStatus(booking))}`}>{getStatusLabel(getBookingStatus(booking))}</span>
+                </div>
+                <div className="grid gap-3 xs:grid-cols-2">
+                  <div><p className="text-xs font-medium uppercase tracking-wide text-slate-500">Service</p><p className="mt-1 break-words text-slate-700">{booking.medicalIssue}</p></div>
+                  <div><p className="text-xs font-medium uppercase tracking-wide text-slate-500">Dentist</p><p className="mt-1 text-slate-700">Dental Team</p></div>
+                </div>
+              </article>
+            ))}
+            {archivedProfileBookings.length === 0 && <p className="p-6 text-center text-sm text-slate-500">No archived appointments yet.</p>}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[560px] text-left text-sm">
               <thead className="text-slate-500"><tr><th className="px-6 py-3 font-medium">Date</th><th className="px-6 py-3 font-medium">Service</th><th className="px-6 py-3 font-medium">Dentist</th><th className="px-6 py-3 font-medium">Status</th></tr></thead>
               <tbody className="divide-y divide-slate-100">
@@ -310,7 +328,7 @@ export default function PatientDetailsPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           <h2 className="mb-6 text-xl font-semibold text-slate-950">Notes & Preferences</h2>
           <div className="grid gap-5 border-b border-slate-200 pb-6 text-sm sm:grid-cols-3">
             <div><p className="text-slate-500">Preferred Contact Method</p><p className="mt-2 font-medium text-slate-800">{selectedProfile.preferredContactMethod || 'Phone'}</p></div>

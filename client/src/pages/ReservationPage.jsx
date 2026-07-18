@@ -419,10 +419,10 @@ export default function ReservationPage() {
   }
 
   return (
-    <div className="min-h-full">
-      <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-slate-900">
+    <div className="booking-page min-h-full">
+      <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-4 px-2 py-4 sm:gap-8 sm:px-6 sm:py-8 lg:px-8">
+      <div className="mb-4 sm:mb-8">
+        <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">
           {editId ? 'Edit Appointment' : 'Book an Appointment'}
         </h1>
         <p className="mt-2 text-slate-600">
@@ -449,9 +449,9 @@ export default function ReservationPage() {
         ))}
       </div>
 
-      <form onSubmit={handleReview} className="space-y-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <form onSubmit={handleReview} className="booking-form space-y-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:space-y-8 sm:p-8">
         {step === 1 && (
-          <div className="space-y-8">
+          <div className="space-y-5 sm:space-y-8">
             <h2 className="text-lg font-semibold text-slate-900">Booking Details</h2>
 
             <SectionDivider label="Patient Profile" />
@@ -627,7 +627,7 @@ export default function ReservationPage() {
                     onClick={() =>
                       setFormData((prev) => ({ ...prev, duration: duration.value, time: '' }))
                     }
-                    className={`rounded-2xl border p-4 text-center transition ${
+                    className={`rounded-2xl border p-2 text-center transition sm:p-4 ${
                       Number(formData.duration) === duration.value
                         ? 'border-sky-500 bg-sky-50 text-sky-700'
                         : 'border-slate-200 hover:border-sky-300'

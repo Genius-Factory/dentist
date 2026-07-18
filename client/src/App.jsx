@@ -34,7 +34,7 @@ export default function App() {
     >
       <Toaster position="top-right" />
       <Navbar />
-      <main className="relative flex-1 max-w-7xl w-full mx-auto px-4 py-6">
+      <main className="relative mx-auto w-full max-w-7xl flex-1 px-[2px] py-1 sm:px-4 sm:py-6">
         <DentalPageDecor />
         <div className="relative z-10">
           <Routes>

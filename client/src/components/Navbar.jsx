@@ -107,6 +107,7 @@ export default function Navbar() {
             className="rounded-lg p-2 text-gray-600 transition hover:bg-gray-100"
             aria-label="Toggle menu"
             aria-expanded={mobileOpen}
+            aria-controls="mobile-navigation"
           >
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
@@ -125,34 +126,14 @@ export default function Navbar() {
       </aside>
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <button
-            className="absolute inset-0 bg-gray-900/40"
-            onClick={() => setMobileOpen(false)}
-            aria-label="Close menu"
-          />
-          <aside className="relative flex h-full w-72 max-w-[85vw] flex-col bg-white px-4 py-5 shadow-xl">
-            <div className="mb-8 flex items-center justify-between">
-              <Link
-                to="/"
-                onClick={() => setMobileOpen(false)}
-                className="text-xl font-bold text-blue-700"
-              >
-                Dentist
-              </Link>
-              <button
-                onClick={() => setMobileOpen(false)}
-                className="rounded-lg p-2 text-gray-600 transition hover:bg-gray-100"
-                aria-label="Close menu"
-              >
-                <X size={22} />
-              </button>
-            </div>
-            <nav className="flex flex-1 flex-col justify-between">
-              {navLinks}
-              {accountControls}
-            </nav>
-          </aside>
+        <div
+          id="mobile-navigation"
+          className="fixed inset-x-0 top-16 z-30 border-b border-gray-200 bg-white px-4 py-4 shadow-lg md:hidden"
+        >
+          <nav className="mx-auto flex max-w-7xl flex-col gap-4">
+            {navLinks}
+            {accountControls}
+          </nav>
         </div>
       )}
     </>
