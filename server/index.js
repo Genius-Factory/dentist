@@ -9,16 +9,24 @@ const app = express();
 
 app.use(helmet());
 
-// Flexible CORS: support comma-separated CLIENT_URL and http/https hostname match
+// Support comma-separated CLIENT_URL values and the localhost aliases used by Vite.
 const clientUrls = (process.env.CLIENT_URL || '').split(',').map(s => s.trim()).filter(Boolean);
+const localHosts = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
+const localDevelopmentAllowed = clientUrls.some((url) => {
+  try {
+    return localHosts.has(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+});
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
     if (clientUrls.length === 0) return callback(null, true);
     if (clientUrls.includes(origin)) return callback(null, true);
     try {
-      const reqHost = new URL(origin).host;
-      if (clientUrls.some(u => { try { return new URL(u).host === reqHost; } catch { return false; } })) {
+      const requestUrl = new URL(origin);
+      if (localDevelopmentAllowed && requestUrl.protocol === 'http:' && localHosts.has(requestUrl.hostname)) {
         return callback(null, true);
       }
     } catch {}

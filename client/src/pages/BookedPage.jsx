@@ -10,6 +10,10 @@ import {
   isBookingEditable,
   saveStoredBookings,
 } from '../lib/bookings'
+import {
+  assignMissingBookingProfiles,
+  getStoredPatientProfiles,
+} from '../lib/patientProfiles'
 
 function formatCountdown(editableUntil) {
   const remaining = new Date(editableUntil).getTime() - Date.now()
@@ -39,7 +43,12 @@ export default function BookedPage() {
 
   useEffect(() => {
     if (!isLoaded || !user) return
-    setBookings(getStoredBookings().filter((booking) => booking.userId === user.id))
+    const { bookings: assignedBookings, changed } = assignMissingBookingProfiles(
+      getStoredBookings(),
+      getStoredPatientProfiles(),
+    )
+    if (changed) saveStoredBookings(assignedBookings)
+    setBookings(assignedBookings.filter((booking) => booking.userId === user.id))
   }, [isLoaded, user])
 
   const cancelBooking = (id) => {
@@ -195,6 +204,15 @@ export default function BookedPage() {
                   >
                     Edit
                   </button>
+                  {booking.profileId && (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/patients/${booking.profileId}`)}
+                      className="rounded-full border border-sky-200 px-5 py-2.5 text-sm font-semibold text-sky-700 transition hover:bg-sky-50"
+                    >
+                      Patient Details
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => cancelBooking(booking.id)}

@@ -1,3 +1,58 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Keep phone layouts comfortably compact while preserving the desktop scale. */
+@media (max-width: 767px) {
+  body {
+    overflow-x: hidden;
+    background: #f3faff;
+  }
+
+  html {
+    font-size: 16px;
+  }
+
+  html,
+  body,
+  #root,
+  #root > div,
+  #root main,
+  #root main > div {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0;
+  }
+
+  .home-page,
+  .home-page > div,
+  .home-page section {
+    box-sizing: border-box;
+    display: block;
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
+  }
+
+  .home-page {
+    position: fixed;
+    inset: 4rem 0 0;
+    z-index: 10;
+    min-height: calc(100dvh - 4rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+    background: #f3faff;
+  }
+
+  .desktop-hero {
+    display: none !important;
+  }
+
+  .booking-page .booking-form input,
+  .booking-page .booking-form select,
+  .booking-page .booking-form textarea {
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+}

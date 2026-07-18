@@ -7,6 +7,8 @@ import SignUpPage from './pages/SignUpPage'
 import ReservationPage from './pages/ReservationPage'
 import BookedPage from './pages/BookedPage'
 import SecretaryAppointmentsPage from './pages/SecretaryAppointmentsPage'
+import PatientDetailsPage from './pages/PatientDetailsPage'
+import UserRecordsPage from './pages/UserRecordsPage'
 import DentalPageDecor from './components/DentalPageDecor'
 
 function Footer() {
@@ -32,7 +34,7 @@ export default function App() {
     >
       <Toaster position="top-right" />
       <Navbar />
-      <main className="relative flex-1 max-w-7xl w-full mx-auto px-4 py-6">
+      <main className="relative mx-auto w-full max-w-7xl flex-1 px-[2px] py-1 sm:px-4 sm:py-6">
         <DentalPageDecor />
         <div className="relative z-10">
           <Routes>
@@ -42,7 +44,10 @@ export default function App() {
             <Route path="/sign-up" element={<SignUpPage />} />
             <Route path="/reservation" element={<ReservationPage />} />
             <Route path="/booked" element={<BookedPage />} />
+            <Route path="/patients" element={<PatientDetailsPage />} />
+            <Route path="/patients/:profileId" element={<PatientDetailsPage />} />
             <Route path="/secretary/appointments" element={<SecretaryAppointmentsPage />} />
+            <Route path="/users" element={<UserRecordsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
