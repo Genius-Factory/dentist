@@ -9,8 +9,22 @@ const app = express();
 
 app.use(helmet());
 
-// Support comma-separated CLIENT_URL values and the localhost aliases used by Vite.
-const clientUrls = (process.env.CLIENT_URL || '').split(',').map(s => s.trim()).filter(Boolean);
+// Support comma-separated frontend URL values and the localhost aliases used by Vite.
+const configuredClientUrls = [
+  process.env.CLIENT_URL,
+  process.env.CLIENT_URLS,
+  process.env.FRONTEND_URL,
+  process.env.FRONTEND_URLS,
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '',
+];
+const normalizeOrigin = (url) => url.replace(/\/+$/, '');
+const clientUrls = [...new Set(configuredClientUrls
+  .flatMap((value) => (value || '').split(','))
+  .map((value) => normalizeOrigin(value.trim()))
+  .filter(Boolean))];
+if (clientUrls.length === 0) {
+  console.warn('No frontend origin configured. Set CLIENT_URLS or FRONTEND_URLS before deploying.');
+}
 const localHosts = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
 const localDevelopmentAllowed = clientUrls.some((url) => {
   try {
@@ -23,7 +37,7 @@ const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
     if (clientUrls.length === 0) return callback(null, true);
-    if (clientUrls.includes(origin)) return callback(null, true);
+    if (clientUrls.includes(normalizeOrigin(origin))) return callback(null, true);
     try {
       const requestUrl = new URL(origin);
       if (localDevelopmentAllowed && requestUrl.protocol === 'http:' && localHosts.has(requestUrl.hostname)) {

@@ -108,7 +108,7 @@ Or paste the contents of `server/db/schema.sql` into your hosted provider’s SQ
 ```env
 DATABASE_URL=postgresql://user:password@host:5432/dental_db
 CLERK_SECRET_KEY=sk_test_XXXXXXXXXXXXXXXX
-CLIENT_URL=http://localhost:5173
+CLIENT_URLS=http://localhost:5173
 OPENAI_API_KEY=sk-XXXXXXXXXXXXXXXX
 PORT=4000
 ```
@@ -118,6 +118,12 @@ PORT=4000
 ```env
 VITE_API_URL=http://localhost:4000
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_XXXXXXXXXXXXXXXX
+```
+
+For deployed environments, set `CLIENT_URLS` on the backend to the frontend origins that should be allowed by CORS. Example:
+
+```env
+CLIENT_URLS=https://dentist.example.com
 ```
 
 ### 4. Install Dependencies & Run
