@@ -8,6 +8,7 @@ import { isSecretaryRole } from '../lib/bookings'
 export default function Navbar() {
   const { user } = useUser()
   const role = user?.publicMetadata?.role || 'member'
+  const isAdmin = role.toLowerCase() === 'admin'
   const isSecretary = isSecretaryRole(role)
   const loc = useLocation()
   const navigate = useNavigate()
@@ -47,14 +48,14 @@ export default function Navbar() {
           <Users size={18} className="shrink-0" />
           <span className={labelClass}>{isSecretary ? 'Patients' : 'Profiles'}</span>
         </Link>
-        <Link
-          to="/users"
+        {isAdmin && <Link
+          to="/db"
           onClick={() => setMobileOpen(false)}
           className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active('/users')}`}
         >
           <Database size={18} className="shrink-0" />
-          <span className={labelClass}>User Records</span>
-        </Link>
+          <span className={labelClass}>DB</span>
+        </Link>}
         {isSecretary && (
           <Link
             to="/secretary/appointments"

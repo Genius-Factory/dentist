@@ -71,6 +71,7 @@ app.get('/healthz/healthz', healthHandler);
 
 // Users/admin routes (protected via Clerk in the router)
 app.use('/api/users', require('./routes/users'));
+app.use('/api/records', require('./routes/records'));
 
 // Expose a simple authenticated endpoint that also syncs the Clerk user to our DB
 const { authenticate, syncUser } = require('./middleware/auth');

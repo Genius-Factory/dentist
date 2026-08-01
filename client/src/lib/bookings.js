@@ -1,17 +1,4 @@
-export const BOOKINGS_STORAGE_KEY = 'dentistBookings'
 export const EDIT_WINDOW_MS = 24 * 60 * 60 * 1000
-
-export function getStoredBookings() {
-  try {
-    return JSON.parse(localStorage.getItem(BOOKINGS_STORAGE_KEY)) || []
-  } catch {
-    return []
-  }
-}
-
-export function saveStoredBookings(bookings) {
-  localStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(bookings))
-}
 
 export function normalizeRole(role) {
   return (role || 'member').toLowerCase()

@@ -6,7 +6,7 @@ const authenticate = requireAuth();
 // Check role from Clerk publicMetadata
 const requireRole = (...roles) => async (req, res, next) => {
   const user = await clerkClient.users.getUser(req.auth.userId);
-  const userRole = user.publicMetadata?.role || 'member';
+  const userRole = String(user.publicMetadata?.role || 'member').toLowerCase();
   if (!roles.includes(userRole)) {
     return res.status(403).json({ error: 'Insufficient permissions' });
   }
@@ -20,7 +20,7 @@ const syncUser = async (req, res, next) => {
   const { userId } = req.auth;
   const clerkUser = await clerkClient.users.getUser(userId);
   const email = clerkUser.emailAddresses[0]?.emailAddress;
-  const role = clerkUser.publicMetadata?.role || 'member';
+  const role = String(clerkUser.publicMetadata?.role || 'member').toLowerCase();
   const username = clerkUser.username || clerkUser.publicMetadata?.username || clerkUser.firstName || (email ? email.split('@')[0] : null);
 
   // Older installations may have a seeded row with the same email but not the

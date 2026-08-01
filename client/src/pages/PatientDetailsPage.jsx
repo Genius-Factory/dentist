@@ -1,29 +1,26 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { useUser } from '@clerk/clerk-react'
+import { useAuth, useUser } from '@clerk/clerk-react'
 import { ArrowLeft, Calendar, ClipboardList, Contact, Edit3, Mail, MapPin, Phone, User } from 'lucide-react'
+import toast from 'react-hot-toast'
 import {
   getBookingStatus,
   getStatusClasses,
   getStatusLabel,
-  getStoredBookings,
   isArchivedBooking,
   isStaffRole,
   normalizeRole,
-  saveStoredBookings,
 } from '../lib/bookings'
 import {
   createProfileFromForm,
   emptyPatientProfile,
-  assignMissingBookingProfiles,
   findProfileForBooking,
   getAge,
   getFullName,
-  getStoredPatientProfiles,
-  saveStoredPatientProfiles,
   splitList,
 } from '../lib/patientProfiles'
+import { createProfile, getAppointments, getProfiles, updateProfile } from '../lib/recordsApi'
 
 function formatDate(dateValue) {
   if (!dateValue) return 'Not set'
@@ -52,6 +49,7 @@ function SectionDivider({ label }) {
 
 function ProfileForm({ initialProfile, onCancel, onSave }) {
   const [form, setForm] = useState(initialProfile)
+  const [saving, setSaving] = useState(false)
   const todayValue = new Date().toISOString().split('T')[0]
   const age = getAge(form.dateOfBirth)
   const isMinor = Number.isInteger(age) && age < 18
@@ -75,9 +73,17 @@ function ProfileForm({ initialProfile, onCancel, onSave }) {
 
   return (
     <form
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault()
-        onSave(form)
+        setSaving(true)
+        try {
+          await onSave(form)
+          toast.success('Patient profile saved')
+        } catch (error) {
+          toast.error(error.message || 'Unable to save the patient profile')
+        } finally {
+          setSaving(false)
+        }
       }}
       className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
     >
@@ -86,7 +92,7 @@ function ProfileForm({ initialProfile, onCancel, onSave }) {
         <label className="text-sm font-medium text-slate-700">First Name<input name="firstName" value={form.firstName} onChange={update} required className={fieldClass} /></label>
         <label className="text-sm font-medium text-slate-700">Last Name<input name="lastName" value={form.lastName} onChange={update} required className={fieldClass} /></label>
         <label className="text-sm font-medium text-slate-700">Date of Birth<input type="date" name="dateOfBirth" value={form.dateOfBirth} max={todayValue} onChange={update} required className={fieldClass} /></label>
-        <label className="text-sm font-medium text-slate-700">Gender<select name="gender" value={form.gender} onChange={update} required className={fieldClass}><option value="">Select gender</option><option>Female</option><option>Male</option></select></label>
+        <label className="text-sm font-medium text-slate-700">Gender<select name="gender" value={form.gender} onChange={update} required className={fieldClass}><option value="">Select gender</option><option>Male</option><option>Female</option></select></label>
         <SectionDivider label="Contact Information" />
         <label className="text-sm font-medium text-slate-700">Phone<input name="phone" value={form.phone} onChange={update} required className={fieldClass} /></label>
         <label className="text-sm font-medium text-slate-700">Email<input type="email" name="email" value={form.email} onChange={update} required className={fieldClass} /></label>
@@ -112,8 +118,8 @@ function ProfileForm({ initialProfile, onCancel, onSave }) {
         <label className="text-sm font-medium text-slate-700 sm:col-span-2">Notes <span className="font-normal text-slate-400">(optional)</span><textarea name="notes" value={form.notes} onChange={update} rows={3} className={fieldClass} /></label>
       </div>
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
-        <button type="button" onClick={onCancel} className="w-full rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto">Cancel</button>
-        <button type="submit" disabled={!isFormComplete} className="w-full rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">Save Details</button>
+        <button type="button" onClick={onCancel} disabled={saving} className="w-full rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto">Cancel</button>
+        <button type="submit" disabled={!isFormComplete || saving} className="w-full rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">{saving ? 'Saving...' : 'Save Details'}</button>
       </div>
     </form>
   )
@@ -124,6 +130,7 @@ export default function PatientDetailsPage() {
   const { profileId } = useParams()
   const [searchParams] = useSearchParams()
   const { user, isLoaded } = useUser()
+  const { getToken } = useAuth()
   const [profiles, setProfiles] = useState([])
   const [bookings, setBookings] = useState([])
   const [selectedId, setSelectedId] = useState(profileId || '')
@@ -135,19 +142,14 @@ export default function PatientDetailsPage() {
 
   useEffect(() => {
     if (!isLoaded || !user) return
-    const storedProfiles = getStoredPatientProfiles()
-    const visibleProfiles = isStaff ? storedProfiles : storedProfiles.filter((profile) => profile.userId === user.id)
-    const { bookings: assignedBookings, changed } = assignMissingBookingProfiles(
-      getStoredBookings(),
-      storedProfiles,
-    )
+    Promise.all([getProfiles(getToken), getAppointments(getToken)]).then(([visibleProfiles, appointments]) => {
     setProfiles(visibleProfiles)
-    if (changed) saveStoredBookings(assignedBookings)
-    setBookings(assignedBookings)
+    setBookings(appointments)
     if (profileId) setSelectedId(profileId)
     if (!profileId && visibleProfiles[0]) setSelectedId(visibleProfiles[0].id)
     if (searchParams.get('create') === '1' && canCreateProfile) setMode('create')
-  }, [canCreateProfile, isLoaded, isStaff, profileId, searchParams, user])
+    }).catch(console.error)
+  }, [canCreateProfile, getToken, isLoaded, profileId, searchParams, user])
 
   const selectedProfile = profiles.find((profile) => profile.id === selectedId) || null
   const canEdit = Boolean(selectedProfile && !isStaff && selectedProfile.userId === user?.id)
@@ -162,14 +164,10 @@ export default function PatientDetailsPage() {
   const archivedProfileBookings = profileBookings.filter((booking) => isArchivedBooking(booking, now)).reverse()
   const upcomingAppointment = activeProfileBookings.find((booking) => appointmentTime(booking) >= now)
 
-  const saveProfile = (form) => {
-    const storedProfiles = getStoredPatientProfiles()
+  const saveProfile = async (form) => {
     const nextProfile = createProfileFromForm(form, user.id)
-    const nextProfiles = form.id
-      ? storedProfiles.map((profile) => (profile.id === form.id && profile.userId === user.id ? nextProfile : profile))
-      : [...storedProfiles, nextProfile]
-    saveStoredPatientProfiles(nextProfiles)
-    setProfiles(isStaff ? nextProfiles : nextProfiles.filter((profile) => profile.userId === user.id))
+    const savedProfile = form.id ? await updateProfile(getToken, nextProfile) : await createProfile(getToken, nextProfile)
+    setProfiles((items) => form.id ? items.map((profile) => profile.id === savedProfile.id ? savedProfile : profile) : [...items, savedProfile])
     setSelectedId(nextProfile.id)
     setMode('view')
   }
