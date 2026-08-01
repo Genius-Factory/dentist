@@ -777,7 +777,7 @@ export default function ReservationPage() {
 
             <button
               type="button"
-              onClick={() => navigate('/patients?create=1')}
+              onClick={() => navigate('/patients/create')}
               className="mt-6 w-full rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               Go to Profiles

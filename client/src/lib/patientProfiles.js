@@ -6,6 +6,8 @@ export const emptyPatientProfile = {
   phone: '',
   email: '',
   address: '',
+  profilePicture: '',
+  profilePictureType: '',
   guardianName: '',
   guardianRelationship: '',
   guardianPhone: '',
@@ -17,6 +19,13 @@ export const emptyPatientProfile = {
   preferredContactMethod: 'Phone',
   communicationPreference: 'WhatsApp',
   language: 'English',
+}
+
+export function getProfilePictureSrc(profile) {
+  if (!profile?.profilePicture) return ''
+  if (String(profile.profilePicture).startsWith('data:')) return profile.profilePicture
+  if (!profile.profilePictureType) return ''
+  return `data:${profile.profilePictureType};base64,${profile.profilePicture}`
 }
 
 

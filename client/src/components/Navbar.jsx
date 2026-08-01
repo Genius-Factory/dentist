@@ -41,12 +41,12 @@ export default function Navbar() {
           <span className={labelClass}>Booked</span>
         </Link>
         <Link
-          to="/patients"
+          to={isAdmin || isSecretary ? '/patients' : '/my-profile'}
           onClick={() => setMobileOpen(false)}
-          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active('/patients')}`}
+          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active(isAdmin || isSecretary ? '/patients' : '/my-profile')}`}
         >
           <Users size={18} className="shrink-0" />
-          <span className={labelClass}>{isSecretary ? 'Patients' : 'Profiles'}</span>
+          <span className={labelClass}>{isAdmin || isSecretary ? 'Patients' : 'My Profile'}</span>
         </Link>
         {isAdmin && <Link
           to="/db"
