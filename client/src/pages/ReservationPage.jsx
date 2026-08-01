@@ -1,21 +1,19 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { useUser } from '@clerk/clerk-react'
+import { useAuth, useUser } from '@clerk/clerk-react'
+import toast from 'react-hot-toast'
 import {
   EDIT_WINDOW_MS,
-  getStoredBookings,
   isBookingEditable,
   isSecretaryRole,
-  saveStoredBookings,
 } from '../lib/bookings'
 import {
-  assignMissingBookingProfiles,
   getAge,
   getFullName,
-  getStoredPatientProfiles,
   profileToBookingFields,
 } from '../lib/patientProfiles'
+import { createAppointment, getAppointments, getProfiles, updateAppointment } from '../lib/recordsApi'
 
 const OPEN_TIME = '08:00'
 const CLOSE_TIME = '17:00'
@@ -217,6 +215,7 @@ export default function ReservationPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { user, isLoaded } = useUser()
+  const { getToken } = useAuth()
   const editId = searchParams.get('edit')
   const role = user?.publicMetadata?.role || 'member'
   const isSecretary = isSecretaryRole(role)
@@ -239,23 +238,20 @@ export default function ReservationPage() {
   useEffect(() => {
     if (!isLoaded || !user) return
 
-    const storedProfiles = getStoredPatientProfiles().filter((profile) => profile.userId === user.id)
+    getProfiles(getToken).then((storedProfiles) => {
     setProfiles(storedProfiles)
 
     if (!editId && storedProfiles.length === 0) {
       setShowProfileModal(true)
     }
-  }, [editId, isLoaded, user])
+    }).catch(console.error)
+  }, [editId, getToken, isLoaded, user])
 
   useEffect(() => {
     if (!isLoaded || !user || !editId) return
 
-    const { bookings: assignedBookings, changed } = assignMissingBookingProfiles(
-      getStoredBookings(),
-      getStoredPatientProfiles(),
-    )
-    if (changed) saveStoredBookings(assignedBookings)
-    const booking = assignedBookings.find((item) => item.id === editId && item.userId === user.id)
+    getAppointments(getToken).then((items) => {
+    const booking = items.find((item) => item.id === editId && item.userId === user.id)
 
     if (booking) {
       if (!isBookingEditable(booking)) {
@@ -276,7 +272,8 @@ export default function ReservationPage() {
       })
       setStep(1)
     }
-  }, [editId, isLoaded, navigate, user])
+    }).catch(console.error)
+  }, [editId, getToken, isLoaded, navigate, user])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -322,7 +319,7 @@ export default function ReservationPage() {
     formData.time
 
   const handleReview = (e) => {
-    e.preventDefault()
+    e?.preventDefault()
 
     if (profiles.length === 0) {
       setShowProfileModal(true)
@@ -340,10 +337,12 @@ export default function ReservationPage() {
 
     if (Object.keys(nextErrors).length === 0) {
       setStep(2)
+    } else {
+      toast.error('Please complete the highlighted booking details before reviewing.')
     }
   }
 
-  const handleSaveBooking = () => {
+  const handleSaveBooking = async () => {
     const nextErrors = validateAppointmentForm(formData)
     setErrors(nextErrors)
 
@@ -352,10 +351,7 @@ export default function ReservationPage() {
       return
     }
 
-    const existingBookings = getStoredBookings()
-    const existingBooking = editId
-      ? existingBookings.find((item) => item.id === editId && item.userId === user.id)
-      : null
+    const existingBooking = editId ? (await getAppointments(getToken)).find((item) => item.id === editId && item.userId === user.id) : null
     const createdAt = existingBooking?.createdAt || new Date().toISOString()
     const status = isSecretary ? 'approved' : 'pending'
     const booking = {
@@ -373,11 +369,8 @@ export default function ReservationPage() {
       declinedAt: null,
       declinedBy: null,
     }
-    const nextBookings = editId
-      ? existingBookings.map((item) => (item.id === editId && item.userId === user.id ? booking : item))
-      : [...existingBookings, booking]
-
-    saveStoredBookings(nextBookings)
+    if (editId) await updateAppointment(getToken, booking)
+    else await createAppointment(getToken, booking)
     navigate('/booked')
   }
 
@@ -480,7 +473,7 @@ export default function ReservationPage() {
                 <option value="">Select a saved profile</option>
                 {profiles.map((profile) => (
                   <option key={profile.id} value={profile.id}>
-                    {getFullName(profile)} {profile.dateOfBirth ? `- ${profile.dateOfBirth}` : ''}
+                    {getFullName(profile)}
                   </option>
                 ))}
               </select>
@@ -495,10 +488,6 @@ export default function ReservationPage() {
             {formData.profileId && (
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                 <p><span className="font-medium text-slate-700">Name:</span> {formData.name}</p>
-                <p><span className="font-medium text-slate-700">Date of Birth:</span> {formData.dateOfBirth}</p>
-                {Number.isInteger(derivedAge) && (
-                  <p><span className="font-medium text-slate-700">Age:</span> {derivedAge}</p>
-                )}
               </div>
             )}
             </div>
@@ -541,6 +530,13 @@ export default function ReservationPage() {
             </div>
 
             <SectionDivider label="Medical Details" />
+            {(errors.name || errors.dateOfBirth || errors.guardianContact) && (
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {errors.name && <p>{errors.name}</p>}
+                {errors.dateOfBirth && <p>{errors.dateOfBirth}</p>}
+                {errors.guardianContact && <p>{errors.guardianContact}</p>}
+              </div>
+            )}
             <div className="grid gap-5 lg:grid-cols-2">
               {Number.isInteger(derivedAge) && derivedAge < 18 && (
                 <div className="lg:col-span-2">
@@ -711,7 +707,8 @@ export default function ReservationPage() {
 
             <div className="flex justify-end">
               <button
-                type="submit"
+                type="button"
+                onClick={handleReview}
                 disabled={!hasBookingRequiredFields}
                 className="w-full rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50 sm:w-auto"
               >

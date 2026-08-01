@@ -1,19 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useUser } from '@clerk/clerk-react'
+import { useAuth, useUser } from '@clerk/clerk-react'
 import {
   getBookingStatus,
   getStatusClasses,
   getStatusLabel,
-  getStoredBookings,
   isArchivedBooking,
   isBookingEditable,
-  saveStoredBookings,
 } from '../lib/bookings'
-import {
-  assignMissingBookingProfiles,
-  getStoredPatientProfiles,
-} from '../lib/patientProfiles'
+import { deleteAppointment, getAppointments } from '../lib/recordsApi'
 
 function formatCountdown(editableUntil) {
   const remaining = new Date(editableUntil).getTime() - Date.now()
@@ -32,6 +27,7 @@ function formatCountdown(editableUntil) {
 export default function BookedPage() {
   const navigate = useNavigate()
   const { user, isLoaded } = useUser()
+  const { getToken } = useAuth()
   const [bookings, setBookings] = useState([])
   const [now, setNow] = useState(Date.now())
   const [showArchived, setShowArchived] = useState(false)
@@ -43,20 +39,12 @@ export default function BookedPage() {
 
   useEffect(() => {
     if (!isLoaded || !user) return
-    const { bookings: assignedBookings, changed } = assignMissingBookingProfiles(
-      getStoredBookings(),
-      getStoredPatientProfiles(),
-    )
-    if (changed) saveStoredBookings(assignedBookings)
-    setBookings(assignedBookings.filter((booking) => booking.userId === user.id))
-  }, [isLoaded, user])
+    getAppointments(getToken).then((items) => setBookings(items.filter((booking) => booking.userId === user.id))).catch(console.error)
+  }, [getToken, isLoaded, user])
 
-  const cancelBooking = (id) => {
-    const nextBookings = getStoredBookings().filter(
-      (booking) => !(booking.id === id && booking.userId === user.id),
-    )
-    saveStoredBookings(nextBookings)
-    setBookings(nextBookings.filter((booking) => booking.userId === user.id))
+  const cancelBooking = async (id) => {
+    await deleteAppointment(getToken, id)
+    setBookings((items) => items.filter((booking) => booking.id !== id))
   }
 
   const activeBookings = useMemo(

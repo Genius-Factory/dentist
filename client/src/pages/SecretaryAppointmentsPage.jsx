@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { useUser } from '@clerk/clerk-react'
+import { useAuth, useUser } from '@clerk/clerk-react'
 import {
   getBookingStatus,
   getStatusClasses,
   getStatusLabel,
-  getStoredBookings,
   isArchivedBooking,
   isSecretaryRole,
-  saveStoredBookings,
 } from '../lib/bookings'
-import { assignMissingBookingProfiles, findProfileForBooking, getStoredPatientProfiles } from '../lib/patientProfiles'
+import { findProfileForBooking } from '../lib/patientProfiles'
+import { getAppointments, getProfiles, updateAppointment } from '../lib/recordsApi'
 
 function sortByAppointmentDate(bookings) {
   return [...bookings].sort((a, b) => {
@@ -22,6 +21,8 @@ function sortByAppointmentDate(bookings) {
 
 export default function SecretaryAppointmentsPage() {
   const { user, isLoaded } = useUser()
+  const { getToken } = useAuth()
+  const [profiles, setProfiles] = useState([])
   const [bookings, setBookings] = useState([])
   const [showArchived, setShowArchived] = useState(false)
   const role = user?.publicMetadata?.role || 'member'
@@ -30,13 +31,8 @@ export default function SecretaryAppointmentsPage() {
 
   useEffect(() => {
     if (!isLoaded || !user || !isSecretary) return
-    const { bookings: assignedBookings, changed } = assignMissingBookingProfiles(
-      getStoredBookings(),
-      getStoredPatientProfiles(),
-    )
-    if (changed) saveStoredBookings(assignedBookings)
-    setBookings(sortByAppointmentDate(assignedBookings))
-  }, [isLoaded, isSecretary, user])
+    Promise.all([getAppointments(getToken), getProfiles(getToken)]).then(([items, profileItems]) => { setBookings(sortByAppointmentDate(items)); setProfiles(profileItems) }).catch(console.error)
+  }, [getToken, isLoaded, isSecretary, user])
 
   const activeBookings = useMemo(
     () => bookings.filter((booking) => !isArchivedBooking(booking, now)),
@@ -60,9 +56,9 @@ export default function SecretaryAppointmentsPage() {
     [activeBookings],
   )
 
-  const updateStatus = (id, status) => {
+  const updateStatus = async (id, status) => {
     const now = new Date().toISOString()
-    const nextBookings = getStoredBookings().map((booking) => {
+    const nextBookings = bookings.map((booking) => {
       if (booking.id !== id) return booking
 
       return {
@@ -76,7 +72,8 @@ export default function SecretaryAppointmentsPage() {
       }
     })
 
-    saveStoredBookings(nextBookings)
+    const updated = nextBookings.find((booking) => booking.id === id)
+    await updateAppointment(getToken, updated)
     setBookings(sortByAppointmentDate(nextBookings))
   }
 
@@ -194,7 +191,7 @@ export default function SecretaryAppointmentsPage() {
         <div className="space-y-4">
           {visibleBookings.map((booking) => {
             const status = getBookingStatus(booking)
-            const profile = findProfileForBooking(getStoredPatientProfiles(), booking)
+            const profile = findProfileForBooking(profiles, booking)
 
             return (
               <article key={booking.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

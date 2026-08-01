@@ -1,5 +1,3 @@
-export const PATIENT_PROFILES_STORAGE_KEY = 'dentistPatientProfiles'
-
 export const emptyPatientProfile = {
   firstName: '',
   lastName: '',
@@ -21,17 +19,6 @@ export const emptyPatientProfile = {
   language: 'English',
 }
 
-export function getStoredPatientProfiles() {
-  try {
-    return JSON.parse(localStorage.getItem(PATIENT_PROFILES_STORAGE_KEY)) || []
-  } catch {
-    return []
-  }
-}
-
-export function saveStoredPatientProfiles(profiles) {
-  localStorage.setItem(PATIENT_PROFILES_STORAGE_KEY, JSON.stringify(profiles))
-}
 
 export function getFullName(profile) {
   return [profile?.firstName, profile?.lastName].filter(Boolean).join(' ').trim()
@@ -39,7 +26,11 @@ export function getFullName(profile) {
 
 export function getAge(dateOfBirth) {
   if (!dateOfBirth) return ''
-  const birthDate = new Date(`${dateOfBirth}T00:00:00`)
+  const dateValue = dateOfBirth instanceof Date
+    ? dateOfBirth.toISOString().slice(0, 10)
+    : String(dateOfBirth).slice(0, 10)
+  const birthDate = new Date(`${dateValue}T00:00:00`)
+  if (Number.isNaN(birthDate.getTime())) return ''
   const today = new Date()
   let age = today.getFullYear() - birthDate.getFullYear()
   const monthDiff = today.getMonth() - birthDate.getMonth()
@@ -74,36 +65,13 @@ export function profileToBookingFields(profile) {
   return {
     profileId: profile.id,
     name: getFullName(profile),
-    dateOfBirth: profile.dateOfBirth,
+    dateOfBirth: profile.dateOfBirth instanceof Date
+      ? profile.dateOfBirth.toISOString().slice(0, 10)
+      : String(profile.dateOfBirth || '').slice(0, 10),
     guardianContact: '',
   }
 }
 
-export function assignMissingBookingProfiles(bookings, profiles) {
-  let changed = false
-  const firstProfileByUser = profiles.reduce((profilesByUser, profile) => {
-    if (profile.userId && !profilesByUser[profile.userId]) {
-      profilesByUser[profile.userId] = profile
-    }
-    return profilesByUser
-  }, {})
-
-  const nextBookings = bookings.map((booking) => {
-    if (booking.profileId) return booking
-
-    const firstProfile = firstProfileByUser[booking.userId]
-    if (!firstProfile) return booking
-
-    changed = true
-    return {
-      ...booking,
-      ...profileToBookingFields(firstProfile),
-      updatedAt: booking.updatedAt || new Date().toISOString(),
-    }
-  })
-
-  return { bookings: nextBookings, changed }
-}
 
 export function findProfileForBooking(profiles, booking) {
   if (booking.profileId) {
