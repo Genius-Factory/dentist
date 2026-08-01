@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth, useUser } from '@clerk/clerk-react'
-import { ArrowLeft, Calendar, ClipboardList, Contact, Edit3, Mail, MapPin, Phone, User } from 'lucide-react'
+import { ArrowLeft, Calendar, ClipboardList, Contact, Edit3, ImagePlus, Mail, MapPin, Phone, Trash2, User } from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
   getBookingStatus,
@@ -18,9 +18,10 @@ import {
   findProfileForBooking,
   getAge,
   getFullName,
+  getProfilePictureSrc,
   splitList,
 } from '../lib/patientProfiles'
-import { createProfile, getAppointments, getProfiles, updateProfile } from '../lib/recordsApi'
+import { createProfile, deleteProfilePicture, getAppointments, getProfiles, updateProfile, uploadProfilePicture } from '../lib/recordsApi'
 
 function formatDate(dateValue) {
   if (!dateValue) return 'Not set'
@@ -47,13 +48,105 @@ function SectionDivider({ label }) {
   )
 }
 
-function ProfileForm({ initialProfile, onCancel, onSave }) {
+function ProfileForm({ initialProfile, onCancel, onSave, onRemovePicture, onSavePicture }) {
   const [form, setForm] = useState(initialProfile)
   const [saving, setSaving] = useState(false)
+  const [savingPicture, setSavingPicture] = useState(false)
   const todayValue = new Date().toISOString().split('T')[0]
   const age = getAge(form.dateOfBirth)
   const isMinor = Number.isInteger(age) && age < 18
   const update = (e) => setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+  const imagePreview = getProfilePictureSrc(form)
+  const handleProfilePictureChange = (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please choose a JPEG, PNG, WebP, or GIF image')
+      return
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Profile picture must be smaller than 2 MB')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      console.log('[profile-picture] selected file', { name: file.name, size: file.size, type: file.type, profileId: form.id || null })
+      setForm((prev) => ({
+        ...prev,
+        profilePicture: reader.result,
+        profilePictureType: file.type,
+        profilePictureFile: file,
+        removeProfilePicture: false,
+      }))
+    }
+    reader.onerror = () => toast.error('Unable to read that image')
+    reader.readAsDataURL(file)
+  }
+  const savePicture = async () => {
+    if (!form.id) {
+      toast.error('Save the profile details first, then save the photo')
+      return
+    }
+
+    if (!form.profilePictureFile) {
+      toast.error('Choose a new photo before saving')
+      return
+    }
+
+    setSavingPicture(true)
+    try {
+      console.log('[profile-picture] Save Photo clicked', { profileId: form.id, size: form.profilePictureFile.size, type: form.profilePictureFile.type })
+      const savedProfile = await onSavePicture(form.id, form.profilePictureFile)
+      console.log('[profile-picture] Save Photo response', {
+        profileId: savedProfile.id,
+        hasProfilePicture: Boolean(savedProfile.profilePicture),
+        profilePictureType: savedProfile.profilePictureType || '',
+        profilePictureBase64Length: savedProfile.profilePicture?.length || 0,
+      })
+      setForm((prev) => ({ ...prev, ...savedProfile, profilePictureFile: null, removeProfilePicture: false }))
+      toast.success('Profile photo saved')
+    } catch (error) {
+      console.error('[profile-picture] save failed', error)
+      toast.error(error.message || 'Unable to save profile photo')
+    } finally {
+      setSavingPicture(false)
+    }
+  }
+  const removePicture = async () => {
+    if (!form.id) {
+      setForm((prev) => ({
+        ...prev,
+        profilePicture: '',
+        profilePictureType: '',
+        profilePictureFile: null,
+        removeProfilePicture: true,
+      }))
+      return
+    }
+
+    setSavingPicture(true)
+    try {
+      console.log('[profile-picture] Remove clicked', { profileId: form.id })
+      const savedProfile = await onRemovePicture(form.id)
+      console.log('[profile-picture] Remove response', {
+        profileId: savedProfile.id,
+        hasProfilePicture: Boolean(savedProfile.profilePicture),
+        profilePictureType: savedProfile.profilePictureType || '',
+      })
+      setForm((prev) => ({ ...prev, ...savedProfile, profilePictureFile: null, removeProfilePicture: false }))
+      toast.success('Profile photo removed')
+    } catch (error) {
+      console.error('[profile-picture] remove failed', error)
+      toast.error(error.message || 'Unable to remove profile photo')
+    } finally {
+      setSavingPicture(false)
+    }
+  }
   const hasValue = (value) => String(value || '').trim().length > 0
   const isFormComplete =
     hasValue(form.firstName) &&
@@ -88,6 +181,45 @@ function ProfileForm({ initialProfile, onCancel, onSave }) {
       className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
     >
       <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-4 sm:col-span-2 sm:flex-row sm:items-center">
+          <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sky-100 to-cyan-200 text-2xl font-semibold text-cyan-800">
+            {imagePreview ? <img src={imagePreview} alt="Profile preview" className="h-full w-full object-cover" /> : <User size={36} />}
+          </div>
+          <div className="flex flex-col gap-3">
+            <div>
+              <p className="font-medium text-slate-800">Profile Picture</p>
+              <p className="mt-1 text-sm text-slate-500">Upload a clear face photo. JPEG, PNG, WebP, or GIF, max 2 MB.</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-sky-200 bg-white px-5 py-2.5 text-sm font-semibold text-sky-700 transition hover:bg-sky-50">
+                <ImagePlus size={16} />
+                Upload Photo
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleProfilePictureChange} className="sr-only" />
+              </label>
+              {form.profilePictureFile && (
+                <button
+                  type="button"
+                  onClick={savePicture}
+                  disabled={savingPicture}
+                  className="inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {savingPicture ? 'Saving Photo...' : 'Save Photo'}
+                </button>
+              )}
+              {imagePreview && (
+                <button
+                  type="button"
+                  onClick={removePicture}
+                  disabled={savingPicture}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-red-200 bg-white px-5 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                >
+                  <Trash2 size={16} />
+                  {savingPicture ? 'Removing...' : 'Remove'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
         <SectionDivider label="Personal Details" />
         <label className="text-sm font-medium text-slate-700">First Name<input name="firstName" value={form.firstName} onChange={update} required className={fieldClass} /></label>
         <label className="text-sm font-medium text-slate-700">Last Name<input name="lastName" value={form.lastName} onChange={update} required className={fieldClass} /></label>
@@ -125,7 +257,7 @@ function ProfileForm({ initialProfile, onCancel, onSave }) {
   )
 }
 
-export default function PatientDetailsPage() {
+export default function PatientDetailsPage({ forceCreate = false }) {
   const navigate = useNavigate()
   const { profileId } = useParams()
   const [searchParams] = useSearchParams()
@@ -139,6 +271,7 @@ export default function PatientDetailsPage() {
   const normalizedRole = normalizeRole(role)
   const isStaff = isStaffRole(role)
   const canCreateProfile = normalizedRole === 'member' || normalizedRole === 'admin'
+  const profileHomePath = isStaff ? '/patients' : '/my-profile'
 
   useEffect(() => {
     if (!isLoaded || !user) return
@@ -147,9 +280,9 @@ export default function PatientDetailsPage() {
     setBookings(appointments)
     if (profileId) setSelectedId(profileId)
     if (!profileId && visibleProfiles[0]) setSelectedId(visibleProfiles[0].id)
-    if (searchParams.get('create') === '1' && canCreateProfile) setMode('create')
+    if ((forceCreate || searchParams.get('create') === '1') && canCreateProfile) setMode('create')
     }).catch(console.error)
-  }, [canCreateProfile, getToken, isLoaded, profileId, searchParams, user])
+  }, [canCreateProfile, forceCreate, getToken, isLoaded, profileId, searchParams, user])
 
   const selectedProfile = profiles.find((profile) => profile.id === selectedId) || null
   const canEdit = Boolean(selectedProfile && !isStaff && selectedProfile.userId === user?.id)
@@ -166,23 +299,85 @@ export default function PatientDetailsPage() {
 
   const saveProfile = async (form) => {
     const nextProfile = createProfileFromForm(form, user.id)
-    const savedProfile = form.id ? await updateProfile(getToken, nextProfile) : await createProfile(getToken, nextProfile)
-    setProfiles((items) => form.id ? items.map((profile) => profile.id === savedProfile.id ? savedProfile : profile) : [...items, savedProfile])
-    setSelectedId(nextProfile.id)
+    console.log('[profile-picture] Save Details clicked', {
+      profileId: nextProfile.id,
+      hasPendingPhotoFile: Boolean(form.profilePictureFile),
+      removeProfilePicture: Boolean(form.removeProfilePicture),
+      profilePictureType: form.profilePictureType || '',
+      profilePictureBase64Length: typeof form.profilePicture === 'string' ? form.profilePicture.length : 0,
+    })
+    const profilePayload = { ...nextProfile }
+    delete profilePayload.profilePicture
+    delete profilePayload.profilePictureType
+    delete profilePayload.profilePictureFile
+    delete profilePayload.removeProfilePicture
+
+    let visibleSavedProfile = form.id ? await updateProfile(getToken, profilePayload) : await createProfile(getToken, profilePayload)
+
+    if (form.profilePictureFile) {
+      console.log('[profile-picture] Save Details uploading pending photo', {
+        profileId: visibleSavedProfile.id,
+        size: form.profilePictureFile.size,
+        type: form.profilePictureFile.type,
+      })
+      visibleSavedProfile = await uploadProfilePicture(getToken, visibleSavedProfile.id, form.profilePictureFile)
+    } else if (form.removeProfilePicture) {
+      console.log('[profile-picture] Save Details removing photo', { profileId: visibleSavedProfile.id })
+      visibleSavedProfile = await deleteProfilePicture(getToken, visibleSavedProfile.id)
+    }
+
+    console.log('[profile-picture] Save Details final profile', {
+      profileId: visibleSavedProfile.id,
+      hasProfilePicture: Boolean(visibleSavedProfile.profilePicture),
+      profilePictureType: visibleSavedProfile.profilePictureType || '',
+      profilePictureBase64Length: visibleSavedProfile.profilePicture?.length || 0,
+    })
+
+    setProfiles((items) => form.id ? items.map((profile) => profile.id === visibleSavedProfile.id ? visibleSavedProfile : profile) : [...items, visibleSavedProfile])
+    setSelectedId(visibleSavedProfile.id)
     setMode('view')
+  }
+
+  const updateSavedProfile = (savedProfile) => {
+    setProfiles((items) => items.map((profile) => profile.id === savedProfile.id ? savedProfile : profile))
+    setSelectedId(savedProfile.id)
+    return savedProfile
+  }
+
+  const saveProfilePicture = async (id, file) => {
+    console.log('[profile-picture] parent uploadProfilePicture start', { profileId: id, size: file.size, type: file.type })
+    const savedProfile = await uploadProfilePicture(getToken, id, file)
+    console.log('[profile-picture] parent uploadProfilePicture done', {
+      profileId: savedProfile.id,
+      hasProfilePicture: Boolean(savedProfile.profilePicture),
+      profilePictureType: savedProfile.profilePictureType || '',
+      profilePictureBase64Length: savedProfile.profilePicture?.length || 0,
+    })
+    return updateSavedProfile(savedProfile)
+  }
+
+  const removeProfilePicture = async (id) => {
+    console.log('[profile-picture] parent deleteProfilePicture start', { profileId: id })
+    const savedProfile = await deleteProfilePicture(getToken, id)
+    console.log('[profile-picture] parent deleteProfilePicture done', {
+      profileId: savedProfile.id,
+      hasProfilePicture: Boolean(savedProfile.profilePicture),
+      profilePictureType: savedProfile.profilePictureType || '',
+    })
+    return updateSavedProfile(savedProfile)
   }
 
   if (!isLoaded) {
     return <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">Loading patient details...</div>
   }
 
-  if (!user) return <Navigate to="/sign-in?redirect_url=/patients" replace />
+  if (!user) return <Navigate to={`/sign-in?redirect_url=${profileHomePath}`} replace />
 
   if (mode === 'edit' || mode === 'create') {
     return (
         <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
         <button onClick={() => setMode('view')} className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-slate-900"><ArrowLeft size={18} /> Patient Details</button>
-        <ProfileForm initialProfile={mode === 'create' ? emptyPatientProfile : selectedProfile || emptyPatientProfile} onCancel={() => setMode('view')} onSave={saveProfile} />
+        <ProfileForm initialProfile={mode === 'create' ? emptyPatientProfile : selectedProfile || emptyPatientProfile} onCancel={() => setMode('view')} onRemovePicture={removeProfilePicture} onSave={saveProfile} onSavePicture={saveProfilePicture} />
       </div>
     )
   }
@@ -201,13 +396,14 @@ export default function PatientDetailsPage() {
     return (
       <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
         <h1 className="text-2xl font-semibold text-slate-900">Patient profile not found</h1>
-        <button onClick={() => navigate('/patients')} className="mt-6 rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">Back to Patients</button>
+        <button onClick={() => navigate(profileHomePath)} className="mt-6 rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">Back to {isStaff ? 'Patients' : 'My Profile'}</button>
       </div>
     )
   }
 
   const allergies = splitList(selectedProfile.allergies)
   const initials = getFullName(selectedProfile).split(' ').map((name) => name[0]).join('').slice(0, 2).toUpperCase()
+  const profilePictureSrc = getProfilePictureSrc(selectedProfile)
   const selectedAge = getAge(selectedProfile.dateOfBirth)
   const isSelectedMinor = Number.isInteger(selectedAge) && selectedAge < 18
 
@@ -238,7 +434,9 @@ export default function PatientDetailsPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_1.05fr]">
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           <div className="flex flex-col gap-6 sm:flex-row">
-            <div className="flex h-28 w-28 shrink-0 items-center justify-center self-center rounded-full bg-gradient-to-br from-sky-100 to-cyan-200 text-3xl font-semibold text-cyan-800 sm:h-36 sm:w-36 sm:self-start sm:text-4xl">{initials}</div>
+            <div className="flex h-28 w-28 shrink-0 items-center justify-center self-center overflow-hidden rounded-full bg-gradient-to-br from-sky-100 to-cyan-200 text-3xl font-semibold text-cyan-800 sm:h-36 sm:w-36 sm:self-start sm:text-4xl">
+              {profilePictureSrc ? <img src={profilePictureSrc} alt={getFullName(selectedProfile)} className="h-full w-full object-cover" /> : initials}
+            </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>

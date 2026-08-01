@@ -24,11 +24,15 @@ CREATE TABLE IF NOT EXISTS patient_profiles (
   last_name VARCHAR(255) NOT NULL DEFAULT '',
   date_of_birth DATE,
   gender VARCHAR(100), phone VARCHAR(100), email VARCHAR(255), address TEXT,
+  profile_picture BYTEA, profile_picture_type VARCHAR(100),
   guardian_name VARCHAR(255), guardian_relationship VARCHAR(255), guardian_phone VARCHAR(100),
   emergency_contact_name VARCHAR(255), emergency_contact_relationship VARCHAR(255), emergency_contact_phone VARCHAR(100),
   allergies TEXT, notes TEXT, preferred_contact_method VARCHAR(100), communication_preference VARCHAR(100), language VARCHAR(100),
   created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
 );
+
+ALTER TABLE patient_profiles ADD COLUMN IF NOT EXISTS profile_picture BYTEA;
+ALTER TABLE patient_profiles ADD COLUMN IF NOT EXISTS profile_picture_type VARCHAR(100);
 
 CREATE TABLE IF NOT EXISTS appointments (
   id VARCHAR(255) PRIMARY KEY,

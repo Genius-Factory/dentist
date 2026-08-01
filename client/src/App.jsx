@@ -8,6 +8,7 @@ import ReservationPage from './pages/ReservationPage'
 import BookedPage from './pages/BookedPage'
 import SecretaryAppointmentsPage from './pages/SecretaryAppointmentsPage'
 import PatientDetailsPage from './pages/PatientDetailsPage'
+import PatientsPage from './pages/PatientsPage'
 import DatabasePage from './pages/DatabasePage'
 import DentalPageDecor from './components/DentalPageDecor'
 
@@ -44,7 +45,9 @@ export default function App() {
             <Route path="/sign-up" element={<SignUpPage />} />
             <Route path="/reservation" element={<ReservationPage />} />
             <Route path="/booked" element={<BookedPage />} />
-            <Route path="/patients" element={<PatientDetailsPage />} />
+            <Route path="/my-profile" element={<PatientDetailsPage />} />
+            <Route path="/patients" element={<PatientsPage />} />
+            <Route path="/patients/create" element={<PatientDetailsPage forceCreate />} />
             <Route path="/patients/:profileId" element={<PatientDetailsPage />} />
             <Route path="/secretary/appointments" element={<SecretaryAppointmentsPage />} />
             <Route path="/users" element={<Navigate to="/db" replace />} />
