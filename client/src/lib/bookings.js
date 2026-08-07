@@ -1,16 +1,17 @@
 export const EDIT_WINDOW_MS = 24 * 60 * 60 * 1000
 
 export function normalizeRole(role) {
-  return (role || 'member').toLowerCase()
+  const value = String(role || '').toLowerCase()
+  return ['superadmin', 'admin', 'secretary', 'member'].includes(value) ? value : 'member'
 }
 
 export function isSecretaryRole(role) {
-  return normalizeRole(role) === 'secretary'
+  return ['secretary', 'admin', 'superadmin'].includes(normalizeRole(role))
 }
 
 export function isStaffRole(role) {
   const normalizedRole = normalizeRole(role)
-  return normalizedRole === 'secretary' || normalizedRole === 'admin'
+  return ['secretary', 'admin', 'superadmin'].includes(normalizedRole)
 }
 
 export function getBookingStatus(booking) {
@@ -28,7 +29,7 @@ export function getAppointmentTimestamp(booking) {
 export function isArchivedBooking(booking, now = Date.now()) {
   const status = getBookingStatus(booking)
 
-  if (status === 'declined') return true
+  if (status === 'declined' || status === 'archived') return true
   if (status !== 'approved') return false
 
   const appointmentTime = getAppointmentTimestamp(booking)
@@ -36,6 +37,7 @@ export function isArchivedBooking(booking, now = Date.now()) {
 }
 
 export function getStatusLabel(status) {
+  if (status === 'archived') return 'Archived'
   if (status === 'pending') return 'Pending approval'
   if (status === 'declined') return 'Declined'
   return 'Approved'

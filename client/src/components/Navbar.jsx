@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { UserButton, useUser, SignedIn, SignedOut } from '@clerk/clerk-react'
 import { CalendarCheck, ClipboardCheck, Database, Home, LogIn, Menu, Users, X } from 'lucide-react'
-import { isSecretaryRole } from '../lib/bookings'
+import { isSecretaryRole, normalizeRole } from '../lib/bookings'
 // import { useCart } from '../contexts/CartContext'
 
 export default function Navbar() {
   const { user } = useUser()
-  const role = user?.publicMetadata?.role || 'member'
-  const isAdmin = role.toLowerCase() === 'admin'
+  const role = normalizeRole(user?.publicMetadata?.role)
+  const isAdmin = ['admin', 'superadmin'].includes(role)
   const isSecretary = isSecretaryRole(role)
   const loc = useLocation()
   const navigate = useNavigate()
@@ -49,9 +49,17 @@ export default function Navbar() {
           <span className={labelClass}>{isAdmin || isSecretary ? 'Patients' : 'My Profile'}</span>
         </Link>
         {isAdmin && <Link
-          to="/db"
+          to="/users"
           onClick={() => setMobileOpen(false)}
           className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active('/users')}`}
+        >
+          <Database size={18} className="shrink-0" />
+          <span className={labelClass}>User Records</span>
+        </Link>}
+        {isAdmin && <Link
+          to="/db"
+          onClick={() => setMobileOpen(false)}
+          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active('/db')}`}
         >
           <Database size={18} className="shrink-0" />
           <span className={labelClass}>DB</span>

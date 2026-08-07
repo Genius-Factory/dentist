@@ -26,13 +26,13 @@ export default function SecretaryAppointmentsPage() {
   const [bookings, setBookings] = useState([])
   const [showArchived, setShowArchived] = useState(false)
   const role = user?.publicMetadata?.role || 'member'
-  const isSecretary = isSecretaryRole(role)
+  const canApproveAppointments = isSecretaryRole(role)
   const now = Date.now()
 
   useEffect(() => {
-    if (!isLoaded || !user || !isSecretary) return
+    if (!isLoaded || !user || !canApproveAppointments) return
     Promise.all([getAppointments(getToken), getProfiles(getToken)]).then(([items, profileItems]) => { setBookings(sortByAppointmentDate(items)); setProfiles(profileItems) }).catch(console.error)
-  }, [getToken, isLoaded, isSecretary, user])
+  }, [getToken, isLoaded, canApproveAppointments, user])
 
   const activeBookings = useMemo(
     () => bookings.filter((booking) => !isArchivedBooking(booking, now)),
@@ -89,11 +89,11 @@ export default function SecretaryAppointmentsPage() {
     return <Navigate to="/sign-in?redirect_url=/secretary/appointments" replace />
   }
 
-  if (!isSecretary) {
+  if (!canApproveAppointments) {
     return (
       <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-900">Secretary access only</h1>
-        <p className="mt-2 text-slate-600">Appointment approvals are available to secretary accounts.</p>
+        <h1 className="text-2xl font-semibold text-slate-900">Staff access only</h1>
+        <p className="mt-2 text-slate-600">Appointment approvals are available to secretary and administrator accounts.</p>
         <Link
           to="/"
           className="mt-6 inline-flex rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"

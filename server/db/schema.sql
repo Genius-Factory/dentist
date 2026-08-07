@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   id         VARCHAR(255) PRIMARY KEY,            -- Clerk user ID
   username   VARCHAR(255) UNIQUE,
   email      VARCHAR(255) UNIQUE NOT NULL,
-  role       VARCHAR(50)  DEFAULT 'member',       -- 'admin' | 'librarian' | 'member' | 'secretary'
+  role       VARCHAR(50)  DEFAULT 'member',       -- 'superadmin' | 'admin' | 'secretary' | 'member'
   created_at TIMESTAMP    DEFAULT NOW()
 );
 
@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS users (
 ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(255);
 -- Add a unique index for username if it doesn't exist
 CREATE UNIQUE INDEX IF NOT EXISTS users_username_idx ON users(username);
+
+-- Safe legacy cleanup: former librarian accounts are normal member accounts.
+UPDATE users SET role = 'member' WHERE role = 'librarian';
 
 -- Patient details are application data, not browser-local state.
 CREATE TABLE IF NOT EXISTS patient_profiles (
@@ -42,7 +45,7 @@ CREATE TABLE IF NOT EXISTS appointments (
   medical_issue TEXT NOT NULL, emergency_level VARCHAR(50) NOT NULL,
   duration INTEGER NOT NULL, appointment_date DATE NOT NULL, appointment_time TIME NOT NULL,
   status VARCHAR(50) NOT NULL DEFAULT 'pending', requested_by_role VARCHAR(50),
-  editable_until TIMESTAMP, approved_at TIMESTAMP, approved_by VARCHAR(255),
+  editable_until TIMESTAMPTZ, approved_at TIMESTAMP, approved_by VARCHAR(255),
   declined_at TIMESTAMP, declined_by VARCHAR(255),
   created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -50,6 +53,12 @@ CREATE TABLE IF NOT EXISTS appointments (
 CREATE INDEX IF NOT EXISTS patient_profiles_user_id_idx ON patient_profiles(user_id);
 CREATE INDEX IF NOT EXISTS appointments_user_id_idx ON appointments(user_id);
 CREATE INDEX IF NOT EXISTS appointments_profile_id_idx ON appointments(profile_id);
+
+-- Appointment edit deadlines are absolute instants. Older installations used
+-- TIMESTAMP without a timezone, which caused clients outside UTC to lose hours.
+ALTER TABLE appointments
+  ALTER COLUMN editable_until TYPE TIMESTAMPTZ
+  USING editable_until AT TIME ZONE 'UTC';
 
 -- ============================================================
 -- Indexes
