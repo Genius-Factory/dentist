@@ -270,7 +270,7 @@ export default function PatientDetailsPage({ forceCreate = false }) {
   const role = user?.publicMetadata?.role || 'member'
   const normalizedRole = normalizeRole(role)
   const isStaff = isStaffRole(role)
-  const canCreateProfile = normalizedRole === 'member' || normalizedRole === 'admin'
+  const canCreateProfile = ['member', 'admin', 'superadmin'].includes(normalizedRole)
   const profileHomePath = isStaff ? '/patients' : '/my-profile'
 
   useEffect(() => {

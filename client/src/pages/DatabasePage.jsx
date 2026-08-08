@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth, useUser } from '@clerk/clerk-react'
 import { Database } from 'lucide-react'
+import { normalizeRole } from '../lib/bookings'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 const HIDDEN_COLUMNS = new Set(['profile_picture'])
@@ -43,7 +44,7 @@ export default function DatabasePage() {
   }, [getToken])
 
   useEffect(() => {
-    if (isLoaded && user?.publicMetadata?.role === 'admin') load()
+    if (isLoaded && ['admin', 'superadmin'].includes(normalizeRole(user?.publicMetadata?.role))) load()
   }, [isLoaded, load, user])
 
   const tableViews = useMemo(
@@ -53,7 +54,7 @@ export default function DatabasePage() {
 
   if (!isLoaded) return <div className="p-6 text-slate-600">Loading DB...</div>
   if (!user) return <Navigate to="/sign-in?redirect_url=/db" replace />
-  if (user.publicMetadata?.role !== 'admin') return <Navigate to="/" replace />
+  if (!['admin', 'superadmin'].includes(normalizeRole(user.publicMetadata?.role))) return <Navigate to="/" replace />
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">

@@ -1,4 +1,5 @@
 const { clerkClient, requireAuth } = require('@clerk/express');
+const { normalizeRole } = require('../lib/roles');
 
 // Verify Clerk session and attach user to req
 const authenticate = requireAuth();
@@ -6,7 +7,7 @@ const authenticate = requireAuth();
 // Check role from Clerk publicMetadata
 const requireRole = (...roles) => async (req, res, next) => {
   const user = await clerkClient.users.getUser(req.auth.userId);
-  const userRole = String(user.publicMetadata?.role || 'member').toLowerCase();
+  const userRole = normalizeRole(user.publicMetadata?.role);
   if (!roles.includes(userRole)) {
     return res.status(403).json({ error: 'Insufficient permissions' });
   }
@@ -20,7 +21,9 @@ const syncUser = async (req, res, next) => {
   const { userId } = req.auth;
   const clerkUser = await clerkClient.users.getUser(userId);
   const email = clerkUser.emailAddresses[0]?.emailAddress;
-  const role = String(clerkUser.publicMetadata?.role || 'member').toLowerCase();
+  // Invalid and legacy Clerk metadata (including "librarian") must never
+  // restore a removed role in the application database.
+  const role = normalizeRole(clerkUser.publicMetadata?.role);
   const username = clerkUser.username || clerkUser.publicMetadata?.username || clerkUser.firstName || (email ? email.split('@')[0] : null);
 
   // Older installations may have a seeded row with the same email but not the

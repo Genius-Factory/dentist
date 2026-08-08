@@ -4,9 +4,15 @@ import { Link, Navigate } from 'react-router-dom'
 import { useAuth, useUser } from '@clerk/clerk-react'
 import { Edit3, Search, Trash2, Users, X } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { normalizeRole } from '../lib/bookings'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
-const ROLES = ['admin', 'librarian', 'member', 'secretary']
+const ROLES = ['superadmin', 'admin', 'secretary', 'member']
+const ROLE_RANK = { member: 0, secretary: 1, admin: 2, superadmin: 3 }
+
+function canManageUser(actorRole, record) {
+  return ROLE_RANK[normalizeRole(actorRole)] > ROLE_RANK[normalizeRole(record.role)]
+}
 
 function formatDate(value) {
   if (!value) return 'Not available'
@@ -17,7 +23,7 @@ function formatDate(value) {
   })
 }
 
-function EditUserDialog({ user, onClose, onSave, saving }) {
+function EditUserDialog({ user, roleOptions, onClose, onSave, saving }) {
   const [username, setUsername] = useState(user.username || '')
   const [role, setRole] = useState(user.role || 'member')
 
@@ -52,7 +58,7 @@ function EditUserDialog({ user, onClose, onSave, saving }) {
           <label className="block text-sm font-medium text-slate-700">
             Role
             <select value={role} onChange={(event) => setRole(event.target.value)} className="mt-2 block w-full rounded-xl border border-slate-300 px-3 py-2.5 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
-              {ROLES.map((option) => <option key={option} value={option}>{option}</option>)}
+              {roleOptions.map((option) => <option key={option} value={option}>{option}</option>)}
             </select>
           </label>
           <div className="flex justify-end gap-3 pt-2">
@@ -77,6 +83,8 @@ export default function UserRecordsPage() {
   const [editingUser, setEditingUser] = useState(null)
   const [saving, setSaving] = useState(false)
   const [deletingId, setDeletingId] = useState('')
+  const signedInRole = normalizeRole(user?.publicMetadata?.role)
+  const canManageRecords = ['admin', 'superadmin'].includes(signedInRole)
 
   const request = async (path, options = {}) => {
     const token = await getToken()
@@ -152,6 +160,7 @@ export default function UserRecordsPage() {
 
   if (!isLoaded) return <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">Loading user records...</div>
   if (!user) return <Navigate to="/sign-in?redirect_url=/users" replace />
+  if (!canManageRecords) return <Navigate to="/" replace />
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
@@ -183,13 +192,24 @@ export default function UserRecordsPage() {
               <thead className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-3 py-3 font-semibold">Username</th><th className="px-3 py-3 font-semibold">Email</th><th className="px-3 py-3 font-semibold">Role</th><th className="px-3 py-3 font-semibold">Created</th><th className="px-3 py-3 text-right font-semibold">Actions</th></tr></thead>
               <tbody className="divide-y divide-slate-100">
                 {visibleUsers.map((record) => (
+                  (() => {
+                    const canEdit = record.id === user.id
+                      ? signedInRole === 'superadmin'
+                      : canManageUser(signedInRole, record)
+                    const canDelete = record.id !== user.id && canManageUser(signedInRole, record)
+                    const roleOptions = record.id === user.id
+                      ? ['superadmin']
+                      : ROLES.filter((role) => ROLE_RANK[role] < ROLE_RANK[signedInRole])
+                    return (
                   <tr key={record.id} className="text-slate-700">
                     <td className="px-3 py-4 font-medium text-slate-900">{record.username || '—'}</td>
                     <td className="px-3 py-4">{record.email}</td>
                     <td className="px-3 py-4"><span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold capitalize text-sky-700">{record.role}</span></td>
                     <td className="px-3 py-4">{formatDate(record.created_at)}</td>
-                    <td className="px-3 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={() => setEditingUser(record)} className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 px-3 py-2 font-semibold text-sky-700 hover:bg-sky-50"><Edit3 size={15} /> Edit</button><button type="button" onClick={() => deleteUser(record)} disabled={deletingId === record.id} className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"><Trash2 size={15} /> {deletingId === record.id ? 'Deleting...' : 'Delete'}</button></div></td>
+                    <td className="px-3 py-4"><div className="flex justify-end gap-2">{canEdit && <button type="button" onClick={() => setEditingUser({ ...record, roleOptions })} className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 px-3 py-2 font-semibold text-sky-700 hover:bg-sky-50"><Edit3 size={15} /> Edit</button>}{canDelete && <button type="button" onClick={() => deleteUser(record)} disabled={deletingId === record.id} className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"><Trash2 size={15} /> {deletingId === record.id ? 'Deleting...' : 'Delete'}</button>}</div></td>
                   </tr>
+                    )
+                  })()
                 ))}
               </tbody>
             </table>
@@ -197,7 +217,7 @@ export default function UserRecordsPage() {
         )}
       </div>
 
-      {editingUser && <EditUserDialog user={editingUser} onClose={() => setEditingUser(null)} onSave={saveUser} saving={saving} />}
+      {editingUser && <EditUserDialog user={editingUser} roleOptions={editingUser.roleOptions} onClose={() => setEditingUser(null)} onSave={saveUser} saving={saving} />}
     </div>
   )
 }

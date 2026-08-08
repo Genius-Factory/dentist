@@ -36,7 +36,7 @@ const camelProfile = (row) => ({
   updatedAt: row.updated_at,
 });
 const camelAppointment = (row) => ({ ...row, userId: row.user_id, profileId: row.profile_id, dateOfBirth: dateOnly(row.date_of_birth), guardianContact: row.guardian_contact, medicalIssue: row.medical_issue, emergencyLevel: row.emergency_level, date: dateOnly(row.appointment_date), time: String(row.appointment_time).slice(0, 5), requestedByRole: row.requested_by_role, editableUntil: row.editable_until, approvedAt: row.approved_at, approvedBy: row.approved_by, declinedAt: row.declined_at, declinedBy: row.declined_by, createdAt: row.created_at, updatedAt: row.updated_at });
-const canManageAll = (req) => ['admin', 'secretary'].includes(req.userRole);
+const canManageAll = (req) => ['superadmin', 'admin', 'secretary'].includes(req.userRole);
 const ownOrStaff = (req, userId) => canManageAll(req) || userId === req.auth.userId;
 const allowedProfilePictureTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const maxProfilePictureBytes = 2 * 1024 * 1024;
@@ -183,7 +183,7 @@ router.delete('/appointments/:id', async (req, res) => {
   res.json({ success: true });
 });
 
-router.get('/admin/database', requireRole('admin'), async (req, res) => {
+router.get('/admin/database', requireRole('admin', 'superadmin'), async (req, res) => {
   const tables = await db.query("SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename");
   const data = await Promise.all(tables.rows.map(async ({ tablename }) => ({ name: tablename, records: (await db.query(`SELECT * FROM ${tablename === 'users' ? 'users' : tablename} ORDER BY 1 DESC`)).rows })));
   res.json(data);

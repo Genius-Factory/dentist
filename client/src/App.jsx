@@ -10,6 +10,7 @@ import SecretaryAppointmentsPage from './pages/SecretaryAppointmentsPage'
 import PatientDetailsPage from './pages/PatientDetailsPage'
 import PatientsPage from './pages/PatientsPage'
 import DatabasePage from './pages/DatabasePage'
+import UserRecordsPage from './pages/UserRecordsPage'
 import DentalPageDecor from './components/DentalPageDecor'
 
 function Footer() {
@@ -50,7 +51,7 @@ export default function App() {
             <Route path="/patients/create" element={<PatientDetailsPage forceCreate />} />
             <Route path="/patients/:profileId" element={<PatientDetailsPage />} />
             <Route path="/secretary/appointments" element={<SecretaryAppointmentsPage />} />
-            <Route path="/users" element={<Navigate to="/db" replace />} />
+            <Route path="/users" element={<UserRecordsPage />} />
             <Route path="/db" element={<DatabasePage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

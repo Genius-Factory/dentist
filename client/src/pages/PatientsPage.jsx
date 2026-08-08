@@ -23,7 +23,7 @@ export default function PatientsPage() {
   const [query, setQuery] = useState('')
   const role = user?.publicMetadata?.role || 'member'
   const isStaff = isStaffRole(role)
-  const canCreateProfile = normalizeRole(role) === 'admin'
+  const canCreateProfile = ['admin', 'superadmin'].includes(normalizeRole(role))
 
   useEffect(() => {
     if (!isLoaded || !user) return
