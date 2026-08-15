@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth, useUser } from '@clerk/clerk-react'
-import { Database } from 'lucide-react'
+import { AlertTriangle, Database } from 'lucide-react'
 import { normalizeRole } from '../lib/bookings'
+import logger from '../lib/logger'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 const HIDDEN_COLUMNS = new Set(['profile_picture'])
@@ -24,6 +25,7 @@ export default function DatabasePage() {
   const [tables, setTables] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [testLogStatus, setTestLogStatus] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -47,6 +49,28 @@ export default function DatabasePage() {
     if (isLoaded && ['admin', 'superadmin'].includes(normalizeRole(user?.publicMetadata?.role))) load()
   }, [isLoaded, load, user])
 
+  const triggerFailedApiLog = async () => {
+    setTestLogStatus('Sending failed API call...')
+
+    try {
+      const response = await fetch(`${API_URL}/api/debug/fail-log-test`, {
+        headers: { Authorization: `Bearer ${await getToken()}` },
+      })
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(body.error || `Expected failure returned ${response.status}`)
+      }
+      setTestLogStatus('Unexpected success')
+    } catch (err) {
+      logger.error('Temporary failed API log test', {
+        route: '/api/debug/fail-log-test',
+        page: 'DatabasePage',
+        message: err.message,
+      })
+      setTestLogStatus(`Logged expected failure: ${err.message}`)
+    }
+  }
+
   const tableViews = useMemo(
     () => tables.map((table) => ({ ...table, columns: getVisibleColumns(table.records) })),
     [tables],
@@ -67,8 +91,18 @@ export default function DatabasePage() {
           <h1 className="mt-2 text-3xl font-semibold text-slate-900">DB</h1>
           <p className="mt-2 text-slate-600">All database tables and their stored records.</p>
         </div>
-        <button onClick={load} className="rounded-full border px-4 py-2 text-sm font-semibold">Refresh</button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button
+            onClick={triggerFailedApiLog}
+            className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+          >
+            <AlertTriangle size={16} />
+            Test Error Log
+          </button>
+          <button onClick={load} className="rounded-full border px-4 py-2 text-sm font-semibold">Refresh</button>
+        </div>
       </div>
+      {testLogStatus && <p className="mt-3 text-sm text-slate-600">{testLogStatus}</p>}
 
       {loading ? (
         <p className="py-12 text-center">Loading database...</p>
