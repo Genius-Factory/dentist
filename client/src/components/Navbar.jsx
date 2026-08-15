@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { UserButton, useUser, SignedIn, SignedOut } from '@clerk/clerk-react'
-import { CalendarCheck, ClipboardCheck, Database, Home, LogIn, Menu, Users, X } from 'lucide-react'
+import { CalendarCheck, ClipboardCheck, Database, Home, LayoutDashboard, LogIn, Menu, Users, X } from 'lucide-react'
 import { isSecretaryRole, normalizeRole } from '../lib/bookings'
 // import { useCart } from '../contexts/CartContext'
 
@@ -32,6 +32,14 @@ export default function Navbar() {
         <span className={labelClass}>Home</span>
       </Link>
       <SignedIn>
+        {isAdmin && <Link
+          to="/admin/dashboard"
+          onClick={() => setMobileOpen(false)}
+          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active('/admin/dashboard')}`}
+        >
+          <LayoutDashboard size={18} className="shrink-0" />
+          <span className={labelClass}>Admin Dashboard</span>
+        </Link>}
         <Link
           to="/booked"
           onClick={() => setMobileOpen(false)}
