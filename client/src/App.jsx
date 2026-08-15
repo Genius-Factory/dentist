@@ -12,6 +12,7 @@ import PatientsPage from './pages/PatientsPage'
 import DatabasePage from './pages/DatabasePage'
 import UserRecordsPage from './pages/UserRecordsPage'
 import DentalPageDecor from './components/DentalPageDecor'
+import AdminDashboardPage from './pages/AdminDashboardPage'
 
 function Footer() {
   return (
@@ -53,6 +54,7 @@ export default function App() {
             <Route path="/secretary/appointments" element={<SecretaryAppointmentsPage />} />
             <Route path="/users" element={<UserRecordsPage />} />
             <Route path="/db" element={<DatabasePage />} />
+            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
