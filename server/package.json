@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js",
-    "init-db": "node db/init-db.js"
+    "init-db": "node db/init-db.js",
+    "logs:html": "node scripts/logs-to-html.js",
+    "logs:html:watch": "node scripts/logs-to-html.js --watch"
   },
   "keywords": [],
   "author": "",
