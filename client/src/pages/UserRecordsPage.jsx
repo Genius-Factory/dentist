@@ -5,6 +5,7 @@ import { useAuth, useUser } from '@clerk/clerk-react'
 import { Edit3, Search, Trash2, Users, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { normalizeRole } from '../lib/bookings'
+import DatabaseLoading from '../components/DatabaseLoading'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 const ROLES = ['superadmin', 'admin', 'secretary', 'member']
@@ -158,7 +159,7 @@ export default function UserRecordsPage() {
     }
   }
 
-  if (!isLoaded) return <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">Loading user records...</div>
+  if (!isLoaded) return <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><DatabaseLoading label="Loading user records from the database…" className="py-0" /></div>
   if (!user) return <Navigate to="/sign-in?redirect_url=/users" replace />
   if (!canManageRecords) return <Navigate to="/" replace />
 
@@ -182,7 +183,7 @@ export default function UserRecordsPage() {
           <button type="button" onClick={loadUsers} disabled={loading} className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">Refresh</button>
         </div>
 
-        {loading ? <p className="py-12 text-center text-slate-600">Loading user records...</p> : error ? (
+        {loading ? <DatabaseLoading label="Loading user records from the database…" /> : error ? (
           <div className="py-12 text-center"><p className="text-red-600">{error}</p><button type="button" onClick={loadUsers} className="mt-4 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white">Try again</button></div>
         ) : visibleUsers.length === 0 ? (
           <div className="py-12 text-center text-slate-600">{users.length === 0 ? 'No user records are in the database yet.' : 'No user records match your search.'}</div>

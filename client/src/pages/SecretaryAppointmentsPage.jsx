@@ -10,6 +10,7 @@ import {
 } from '../lib/bookings'
 import { findProfileForBooking } from '../lib/patientProfiles'
 import { getAppointments, getProfiles, updateAppointment } from '../lib/recordsApi'
+import DatabaseLoading from '../components/DatabaseLoading'
 
 function sortByAppointmentDate(bookings) {
   return [...bookings].sort((a, b) => {
@@ -25,13 +26,15 @@ export default function SecretaryAppointmentsPage() {
   const [profiles, setProfiles] = useState([])
   const [bookings, setBookings] = useState([])
   const [showArchived, setShowArchived] = useState(false)
+  const [loading, setLoading] = useState(true)
   const role = user?.publicMetadata?.role || 'member'
   const canApproveAppointments = isSecretaryRole(role)
   const now = Date.now()
 
   useEffect(() => {
     if (!isLoaded || !user || !canApproveAppointments) return
-    Promise.all([getAppointments(getToken), getProfiles(getToken)]).then(([items, profileItems]) => { setBookings(sortByAppointmentDate(items)); setProfiles(profileItems) }).catch(console.error)
+    setLoading(true)
+    Promise.all([getAppointments(getToken), getProfiles(getToken)]).then(([items, profileItems]) => { setBookings(sortByAppointmentDate(items)); setProfiles(profileItems) }).catch(console.error).finally(() => setLoading(false))
   }, [getToken, isLoaded, canApproveAppointments, user])
 
   const activeBookings = useMemo(
@@ -77,10 +80,10 @@ export default function SecretaryAppointmentsPage() {
     setBookings(sortByAppointmentDate(nextBookings))
   }
 
-  if (!isLoaded) {
+  if (!isLoaded || (user && canApproveAppointments && loading)) {
     return (
       <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">
-        Loading appointments...
+        <DatabaseLoading label="Loading appointments from the database…" className="py-0" />
       </div>
     )
   }

@@ -5,6 +5,7 @@ import { Calendar, Mail, MapPin, Phone, Plus, Search, UserRound, Users } from 'l
 import { isStaffRole, normalizeRole } from '../lib/bookings'
 import { getAge, getFullName, getProfilePictureSrc } from '../lib/patientProfiles'
 import { getProfiles } from '../lib/recordsApi'
+import DatabaseLoading from '../components/DatabaseLoading'
 
 function patientInitials(profile) {
   return getFullName(profile)
@@ -50,7 +51,7 @@ export default function PatientsPage() {
   }, [profiles, query])
 
   if (!isLoaded) {
-    return <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">Loading patients...</div>
+    return <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><DatabaseLoading label="Loading patients from the database…" className="py-0" /></div>
   }
 
   if (!user) return <Navigate to="/sign-in?redirect_url=/patients" replace />
@@ -110,7 +111,7 @@ export default function PatientsPage() {
       </section>
 
       {loading ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">Loading patient cards...</div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"><DatabaseLoading label="Loading patients from the database…" className="py-0" /></div>
       ) : visibleProfiles.length > 0 ? (
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {visibleProfiles.map((profile) => {

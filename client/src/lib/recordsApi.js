@@ -40,6 +40,7 @@ export const updateProfile = (getToken, profile) => request(getToken, `/api/reco
 export const uploadProfilePicture = (getToken, id, file) => requestBody(getToken, `/api/records/profiles/${id}/profile-picture`, file, { 'Content-Type': file.type })
 export const deleteProfilePicture = (getToken, id) => request(getToken, `/api/records/profiles/${id}/profile-picture`, { method: 'DELETE' })
 export const getAppointments = (getToken) => request(getToken, '/api/records/appointments')
+export const getUsers = (getToken) => request(getToken, '/api/users')
 export const createAppointment = (getToken, appointment) => request(getToken, '/api/records/appointments', { method: 'POST', body: JSON.stringify(appointment) })
 export const updateAppointment = (getToken, appointment) => request(getToken, `/api/records/appointments/${appointment.id}`, { method: 'PUT', body: JSON.stringify(appointment) })
 export const deleteAppointment = (getToken, id) => request(getToken, `/api/records/appointments/${id}`, { method: 'DELETE' })
