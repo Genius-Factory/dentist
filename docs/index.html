@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="description" content="Dentist application handbook: setup, workflows, API, database, operations, and implementation details."><title>Dentist application handbook</title><style>:root{color-scheme:light;--bg:#f8fafb;--surface:#fff;--text:#243348;--muted:#52657a;--line:#dce5ec;--accent:#087f86;--tint:#e9f6f5;--code:#102836;--code-text:#e3eef4;--shadow:0 12px 36px #18394b08}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:96px}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.75 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:var(--accent);text-underline-offset:4px}button,input{font:inherit}button{cursor:pointer;background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 13px;font-size:13px;font-weight:600}button:hover{border-color:var(--accent);color:var(--accent)}:focus-visible{outline:3px solid #14a9b0;outline-offset:4px}[hidden]{display:none!important}.skip-link{position:fixed;top:-80px;left:20px;z-index:10;background:var(--surface);padding:12px}.skip-link:focus{top:12px}
+.sidebar{position:fixed;inset:0 auto 0 0;width:294px;background:var(--surface);border-right:1px solid var(--line);padding:32px 24px;overflow-y:auto}.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--text);font-size:23px;font-weight:750;line-height:1.3;margin-bottom:35px}.brand-icon{display:grid;place-items:center;width:43px;height:45px;border-radius:13px;background:var(--accent);color:#fff;font-size:26px}.brand-subtitle{display:block;font-size:9px;letter-spacing:1.7px;color:var(--muted);margin-top:6px}.search-label{display:block;font-size:12px;font-weight:650;margin-bottom:7px}.search-box{position:relative}.search-box input{width:100%;font-size:13px;padding:12px 28px 12px 12px;background:var(--bg);border:1px solid var(--line);border-radius:9px;color:var(--text)}kbd{position:absolute;right:11px;top:11px;font:12px monospace;border:1px solid var(--line);border-radius:3px;padding:0 5px;color:var(--muted)}#search-status{font-size:11px;color:var(--muted);margin:10px 0 22px}nav{display:grid;gap:5px}nav a{display:flex;gap:12px;align-items:baseline;padding:9px 10px;border-radius:7px;text-decoration:none;color:var(--muted);font-size:13px;line-height:1.4}nav a span{font:11px ui-monospace,monospace;color:var(--muted)}nav a:hover,nav a[aria-current]{background:var(--tint);color:var(--accent)}.sidebar-footer{border-top:1px solid var(--line);padding-top:22px;margin-top:28px;font-size:11px;color:var(--muted)}
+.page{margin-left:294px}.topbar{position:sticky;top:0;z-index:3;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 42px;background:var(--surface);border-bottom:1px solid var(--line);font-size:13px;font-weight:600}.crumb{font-weight:400;color:var(--muted)}.actions{display:flex;gap:8px}main{max-width:1130px;margin:0 auto;padding:48px 54px 36px;min-width:0}.hero{padding:12px 0 38px;border-bottom:1px solid var(--line);margin-bottom:28px}.eyebrow{font-size:11px;font-weight:750;letter-spacing:2px;color:var(--accent);margin:0 0 14px}h1{font-size:clamp(32px,3.8vw,49px);line-height:1.12;letter-spacing:-1.8px;max-width:710px;margin:0 0 20px}.intro{max-width:700px;font-size:18px;line-height:1.7;color:var(--muted)}.hero-meta{display:flex;gap:9px;flex-wrap:wrap;margin:23px 0}.hero-meta span{font-size:11px;letter-spacing:.3px;padding:5px 11px;border:1px solid var(--line);border-radius:50px;background:var(--surface);color:var(--muted)}.quick-links{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px}.quick-links a{display:flex;justify-content:space-between;gap:12px;font-size:13px;font-weight:650;text-decoration:none;border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--surface);box-shadow:var(--shadow)}.quick-links a:hover{border-color:var(--accent)}
+article>p{color:var(--muted)}.chapter{padding:22px 0 28px;border-bottom:1px solid var(--line)}h2{font-size:27px;line-height:1.3;letter-spacing:-.65px;margin:15px 0 24px}h3{font-size:19px;line-height:1.4;margin:32px 0 14px}h4,h5,h6{font-size:17px}.heading-link{color:inherit;text-decoration:none}.heading-link:hover{color:var(--accent)}p{margin:14px 0 20px}li{padding-left:4px;margin:8px 0}ul,ol{padding-left:25px}strong{font-weight:700}code{font:13px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace;padding:2px 5px;border-radius:4px;background:var(--tint);color:var(--accent);overflow-wrap:anywhere}.code-block{margin:23px 0;border-radius:11px;background:var(--code);overflow:hidden;box-shadow:var(--shadow)}.code-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 16px;border-bottom:1px solid #ffffff18;color:#b8d6df;font-size:11px;letter-spacing:.5px}.copy-button{color:#d6e9ee;background:transparent;border-color:#ffffff30;padding:3px 11px;font-size:11px}.copy-button:hover{color:white;border-color:#8dccd4}pre{overflow:auto;padding:19px 22px;margin:0;tab-size:2}pre code{background:none;color:var(--code-text);padding:0;overflow-wrap:normal;font-size:12.5px;line-height:1.85}.table-scroll{overflow:auto;border:1px solid var(--line);border-radius:10px;margin:22px 0;background:var(--surface)}table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.65}th,td{padding:13px 16px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);min-width:120px}th{font-weight:650;background:var(--tint);color:var(--text)}tr:last-child td{border-bottom:0}td:first-child{font-weight:550}td code{font-size:12px}blockquote{margin:24px 0;background:var(--tint);border-left:3px solid var(--accent);padding:4px 22px;border-radius:0 8px 8px 0;font-size:14px}.document-footer{margin-top:30px;display:flex;justify-content:space-between;gap:20px;font-size:11px;color:var(--muted)}#no-results{padding:40px 0}.noscript{position:fixed;bottom:0;background:var(--surface);padding:14px;border:1px solid var(--line);z-index:5;font-size:13px}
+html[data-theme="dark"]{color-scheme:dark;--bg:#111d28;--surface:#182735;--text:#e2eaf2;--muted:#adbdcc;--line:#334759;--accent:#6ed9d6;--tint:#203b43;--code:#0d1923;--code-text:#e3eef4;--shadow:none}
+@media(max-width:1100px){.sidebar{width:255px;padding:27px 18px}.page{margin-left:255px}main{padding:36px 30px}.topbar{padding:14px 30px}.quick-links{grid-template-columns:1fr}.quick-links a{padding:10px 15px}}
+@media(max-width:760px){html{scroll-padding-top:25px}.sidebar{position:relative;width:100%;padding:24px;border-right:0;border-bottom:1px solid var(--line)}.brand{margin-bottom:22px}nav{display:flex;overflow-x:auto;gap:6px;padding-bottom:7px}nav a{flex:0 0 auto;font-size:12px;border:1px solid var(--line)}.sidebar-footer{display:none}#search-status{margin-bottom:15px}.page{margin:0}.topbar{position:relative;padding:14px 20px;flex-wrap:wrap}.crumb{display:none}main{padding:28px 20px}.hero{padding-top:0}h1{font-size:36px;letter-spacing:-1px}h2{font-size:25px}.intro{font-size:16px}.quick-links{gap:8px}.document-footer{flex-direction:column}body{font-size:15px}.table-scroll{max-width:100%}th,td{padding:11px;min-width:125px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{html,html[data-theme="dark"]{color-scheme:light;--bg:#fff;--surface:#fff;--text:#111;--muted:#333;--line:#bbb;--accent:#125762;--tint:#f2f5f5;--code:#f4f5f6;--code-text:#111}body{font-size:10pt;line-height:1.5}.sidebar,.topbar,.quick-links,.copy-button,.skip-link,.noscript,#no-results{display:none!important}.page{margin:0}main{max-width:none;padding:0}.hero{padding:0 0 16px}.chapter[hidden]{display:block!important}.chapter{padding:12px 0}h1{font-size:28pt}h2{font-size:19pt}h3{font-size:13pt}h2,h3{break-after:avoid}pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:12px}pre code{font-size:9pt}.code-block,.table-scroll{overflow:visible;box-shadow:none}.code-toolbar{color:#333;border-color:#bbb}table{font-size:9pt;table-layout:fixed}th,td{min-width:0;padding:7px;overflow-wrap:anywhere}tr{break-inside:avoid}thead{display:table-header-group}a{color:inherit;text-decoration:none}.hero-meta span{border-color:#bbb}.document-footer{font-size:8pt}.document-footer a{display:none}@page{margin:16mm}}
+</style></head>
+<body><a class="skip-link" href="#content">Skip to content</a>
+<aside class="sidebar"><a class="brand" href="#top"><span class="brand-icon" aria-hidden="true">D</span><span>Dentist<span class="brand-subtitle">APPLICATION HANDBOOK</span></span></a><label class="search-label" for="search">Find a topic</label><div class="search-box"><input id="search" type="search" placeholder="Search documentation…" autocomplete="off"><kbd>/</kbd></div><p id="search-status" role="status" aria-live="polite">13 chapters · available offline</p><nav aria-label="Table of contents"><a href="#application-overview"><span>01</span>Application overview</a>
+<a href="#read-and-regenerate-this-handbook"><span>02</span>Read and regenerate this handbook</a>
+<a href="#architecture-and-request-flow"><span>03</span>Architecture and request flow</a>
+<a href="#installation-and-local-setup"><span>04</span>Installation and local setup</a>
+<a href="#configuration-reference"><span>05</span>Configuration reference</a>
+<a href="#roles-and-permissions"><span>06</span>Roles and permissions</a>
+<a href="#user-guide-and-page-reference"><span>07</span>User guide and page reference</a>
+<a href="#api-reference"><span>08</span>API reference</a>
+<a href="#database-reference"><span>09</span>Database reference</a>
+<a href="#logging-and-troubleshooting"><span>10</span>Logging and troubleshooting</a>
+<a href="#build-deployment-and-maintenance"><span>11</span>Build, deployment, and maintenance</a>
+<a href="#current-limitations-and-implementation-gaps"><span>12</span>Current limitations and implementation gaps</a>
+<a href="#documentation-maintenance"><span>13</span>Documentation maintenance</a></nav><p class="sidebar-footer">Genius Factory<br>Source-based application documentation</p></aside>
+<div class="page"><header class="topbar"><span>Documentation <span class="crumb">/ Application guide</span></span><div class="actions"><button id="theme" type="button" aria-pressed="false">Dark mode</button><button id="print" type="button">Print / PDF</button></div></header>
+<main id="content"><div class="hero" id="top"><p class="eyebrow">THE APPLICATION, EXPLAINED</p><h1>Dentist application handbook</h1><p class="intro">From the first patient profile to the API behind it. A practical guide for clinic teams and the people who build and run the application.</p><div class="hero-meta"><span>13 chapters</span><span>17 API endpoints</span><span>3 database tables</span></div><div class="quick-links"><a href="#installation-and-local-setup">Start locally <span aria-hidden="true">↗</span></a><a href="#user-guide-and-page-reference">Explore workflows <span aria-hidden="true">↗</span></a><a href="#api-reference">API reference <span aria-hidden="true">↗</span></a></div></div>
+<article><p>This handbook describes the application implemented in this repository. It is intended for clinic users, administrators, developers, and operators. The source code is the authority for behavior; setup instructions do not imply that a live deployment or external services have been tested.</p>
+<section class="chapter" aria-labelledby="application-overview">
+<h2 id="application-overview"><a class="heading-link" href="#application-overview">Application overview</a></h2>
+<p>The application lets signed-in users maintain patient profiles and request dental appointments. Clinic staff review requests, and administrators manage application user records and inspect stored data. Patient profiles and appointments are stored in PostgreSQL; Clerk provides identity and session authentication.</p>
+<div class="table-scroll" role="region" aria-label="Area, Implemented behavior table" tabindex="0"><table><thead><tr><th scope="col">Area</th><th scope="col">Implemented behavior</th></tr></thead><tbody><tr><td>Patient profiles</td><td>Personal details, contact information, guardians, emergency contacts, allergies, notes, preferences, and profile photos</td></tr><tr><td>Reservations</td><td>Profile selection, reason for visit, urgency, duration, weekday time selection, review, and submission</td></tr><tr><td>Appointment tracking</td><td>Pending and approved requests, a pending edit countdown, cancellation, and archive views</td></tr><tr><td>Staff approvals</td><td>Review all requests and approve or decline appointments</td></tr><tr><td>Administration</td><td>Dashboard, username and role changes, application user deletion, and database table viewing</td></tr><tr><td>Observability</td><td>Database health endpoint, structured server logs, browser error collection, and an HTML log viewer</td></tr></tbody></table></div>
+<p>There are no implemented treatment-plan, invoice, payment, AI-summary, dentist-availability, or notification-delivery APIs. The OpenAI and AWS S3 packages are declared dependencies but have no application integration in the inspected source. Displayed reservation prices are informational; no payment is collected. Photos are stored in PostgreSQL, not S3.</p>
+</section>
+<section class="chapter" aria-labelledby="read-and-regenerate-this-handbook">
+<h2 id="read-and-regenerate-this-handbook"><a class="heading-link" href="#read-and-regenerate-this-handbook">Read and regenerate this handbook</a></h2>
+<p>Open <code>docs/index.html</code> directly in a browser. The HTML is self-contained and works offline without running the application, connecting to Clerk, or installing packages. It includes section search, navigation, light/dark appearance, copy buttons, and print styling.</p>
+<p>From the repository root:</p>
+<div class="code-block"><div class="code-toolbar"><span>powershell</span><button type="button" class="copy-button">Copy</button></div><pre><code>node scripts/generate-docs.cjs
+node scripts/generate-docs.cjs --open
+node scripts/generate-docs.cjs --watch</code></pre></div>
+<p>You can combine <code>--watch --open</code>. Watch mode rebuilds after edits; refresh the browser to see the result. Stop watching with Ctrl+C. <code>--help</code> lists the supported options. From any directory, an absolute path to the script also works: all input and output paths are resolved relative to the script.</p>
+<p>The server package also exposes these shortcuts:</p>
+<div class="code-block"><div class="code-toolbar"><span>powershell</span><button type="button" class="copy-button">Copy</button></div><pre><code>npm --prefix server run docs:html
+npm --prefix server run docs:open
+npm --prefix server run docs:watch</code></pre></div>
+<p>Edit <code>docs/application.md</code> for content, <code>docs/assets/handbook.css</code> for presentation, and <code>docs/assets/handbook.js</code> for browser interactions. Regenerate and commit <code>docs/index.html</code> with the source changes. The generator supports headings, paragraphs, single-level ordered/unordered lists, fenced code, tables, blockquotes, links, inline code, and bold text. Raw HTML is escaped. It is a deliberately small Markdown subset, not a general CommonMark implementation.</p>
+</section>
+<section class="chapter" aria-labelledby="architecture-and-request-flow">
+<h2 id="architecture-and-request-flow"><a class="heading-link" href="#architecture-and-request-flow">Architecture and request flow</a></h2>
+<div class="code-block"><div class="code-toolbar"><span>text</span><button type="button" class="copy-button">Copy</button></div><pre><code>Browser: React + React Router + Tailwind
+  |                     |
+  | Clerk session       | Bearer token on application requests
+  v                     v
+Clerk identity      Express API (default port 4000)
+                        |-- authenticate: Clerk requireAuth()
+                        |-- syncUser: Clerk profile -&gt; local users row
+                        |-- role / ownership checks
+                        |-- PostgreSQL pool -&gt; users, profiles, appointments
+                        `-- JSON logs -&gt; console + server/logs/app.log
+
+Browser errors -&gt; POST /api/logs -&gt; server logger
+Markdown + CSS + JavaScript -&gt; generator -&gt; standalone docs/index.html</code></pre></div>
+<p>The client is a Vite single-page application, served on port 5173 by default in development. <code>BrowserRouter</code> handles URLs. Pages fetch data when their authentication state is ready. Most record operations use the Fetch helpers in <code>client/src/lib/recordsApi.js</code>; an Axios client and <code>useApi</code> hook are also available.</p>
+<p>The Express entry point loads dotenv, assigns a request ID, applies Helmet and CORS, parses JSON up to 4 MB, and installs Morgan logging. It mounts health, logging, users, records, and current-user endpoints, followed by not-found and centralized error middleware. The server does not serve the frontend build or this handbook.</p>
+<p>Protected record requests authenticate and synchronize the Clerk user before accessing records. Staff can read all profiles and appointments; members receive only their own records. There is no polling, WebSocket feed, scheduled worker, or separate service layer. Refresh a page to reload changes made by another user.</p>
+<h3 id="technology-and-source-map"><a class="heading-link" href="#technology-and-source-map">Technology and source map</a></h3>
+<p>Versions below are declared package ranges, not a guarantee about a particular installed dependency tree.</p>
+<div class="table-scroll" role="region" aria-label="Layer, Main dependencies table" tabindex="0"><table><thead><tr><th scope="col">Layer</th><th scope="col">Main dependencies</th></tr></thead><tbody><tr><td>UI</td><td>React ^18.3.1, React Router ^7.13.0, Clerk React ^5.61.0</td></tr><tr><td>UI utilities</td><td>Tailwind ^3.4.19, Lucide ^0.575.0, Axios ^1.13.5, react-hot-toast ^2.6.0</td></tr><tr><td>Client build</td><td>Vite ^5.4.10, React Vite plugin ^4.3.3, ESLint ^9.13.0</td></tr><tr><td>Server</td><td>Express ^4.22.1, Clerk Express ^1.7.72, pg ^8.18.0</td></tr><tr><td>Server utilities</td><td>dotenv ^17.3.1, Helmet ^8.1.0, CORS ^2.8.6, Morgan ^1.10.0, express-async-errors ^3.1.1</td></tr><tr><td>Development</td><td>nodemon ^3.1.13</td></tr></tbody></table></div>
+<div class="code-block"><div class="code-toolbar"><span>text</span><button type="button" class="copy-button">Copy</button></div><pre><code>client/
+  src/main.jsx                 Clerk provider, router, global browser logger
+  src/App.jsx                  Routes, layout, navigation, footer
+  src/pages/                   Screen components and form workflows
+  src/components/              Navigation, loading state, decorative elements
+  src/lib/recordsApi.js        Fetch wrappers for records and users
+  src/lib/bookings.js          Roles, status, edit window, archive helpers
+  src/lib/patientProfiles.js   Profile defaults, age/name/photo helpers
+  src/lib/logger.js           Browser log queue and error listeners
+  src/lib/api.js              Axios instance and auth/error interceptors
+  src/hooks/useApi.js         Installs Axios interceptors
+  vite.config.js              React build configuration; no API proxy
+server/
+  index.js                    HTTP server, CORS, route mounting
+  middleware/auth.js          Authentication, role checks, user synchronization
+  middleware/errorHandler.js  Error mapping and response shaping
+  routes/records.js           Profiles, photos, appointments, DB inspector
+  routes/users.js             Administrative user operations
+  routes/logs.js              Public browser log ingestion
+  lib/roles.js                Role normalization and hierarchy
+  lib/logger.js               Structured logging and key redaction
+  db/schema.sql              Schema and compatibility updates
+  db/init-db.js               Statement-by-statement schema initializer
+  db/index.js                 PostgreSQL connection pool
+  scripts/logs-to-html.js     Existing HTML log generator
+  tests/test-error-handler.js Error middleware checks
+docs/                         Handbook source, assets, generated HTML
+scripts/generate-docs.cjs      Offline documentation generator</code></pre></div>
+</section>
+<section class="chapter" aria-labelledby="installation-and-local-setup">
+<h2 id="installation-and-local-setup"><a class="heading-link" href="#installation-and-local-setup">Installation and local setup</a></h2>
+<p>Use Node.js and npm compatible with the package manifests and installed dependencies. No Node version is pinned in this repository. The documentation generator itself requires Node 18 or later and no npm packages. The application requires a PostgreSQL database and a configured Clerk application.</p>
+<h3 id="install-dependencies"><a class="heading-link" href="#install-dependencies">Install dependencies</a></h3>
+<p>Run from the repository root:</p>
+<div class="code-block"><div class="code-toolbar"><span>powershell</span><button type="button" class="copy-button">Copy</button></div><pre><code>npm --prefix server install
+npm --prefix client install</code></pre></div>
+<p>The client and server are separate packages; there is no root application package. If you maintain committed lockfiles, use <code>npm ci</code> inside each package for reproducible installs. Otherwise use <code>npm install</code> and review the resulting lockfiles.</p>
+<h3 id="configure-the-server"><a class="heading-link" href="#configure-the-server">Configure the server</a></h3>
+<p>Create <code>server/.env</code> with your own values:</p>
+<div class="code-block"><div class="code-toolbar"><span>dotenv</span><button type="button" class="copy-button">Copy</button></div><pre><code>DATABASE_URL=postgresql://APP_USER:APP_PASSWORD@DB_HOST:5432/dental_db
+CLERK_SECRET_KEY=sk_test_REPLACE_ME
+CLERK_PUBLISHABLE_KEY=pk_test_REPLACE_ME
+CLIENT_URLS=http://localhost:5173
+PORT=4000
+LOG_LEVEL=info
+NODE_ENV=development</code></pre></div>
+<p>Use keys for the same Clerk application on the frontend and backend. Clerk keys are consumed by the Clerk SDK. Do not put the secret key into a client variable. The app reads roles from Clerk user public metadata. For username editing, configure Clerk to accept usernames.</p>
+<h3 id="configure-the-client"><a class="heading-link" href="#configure-the-client">Configure the client</a></h3>
+<p>Create <code>client/.env.local</code>:</p>
+<div class="code-block"><div class="code-toolbar"><span>dotenv</span><button type="button" class="copy-button">Copy</button></div><pre><code>VITE_API_URL=http://localhost:4000
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_REPLACE_ME
+VITE_REMOTE_LOGGING=true</code></pre></div>
+<p>Set the API URL to the server origin, without an <code>/api</code> suffix or trailing slash. Record helpers append complete <code>/api/...</code> paths. Vite variables are included in browser code at build time. Restart development servers after changing environment files; rebuild the client when deployment variables change.</p>
+<h3 id="initialize-postgresql"><a class="heading-link" href="#initialize-postgresql">Initialize PostgreSQL</a></h3>
+<p>The database must already exist. Both the runtime pool and initializer explicitly enable SSL with certificate verification disabled. A local PostgreSQL server without SSL will fail with these settings; configure an SSL-capable database or deliberately adjust both pool configurations for your local environment. There is no <code>DB_SSL</code> environment switch.</p>
+<div class="code-block"><div class="code-toolbar"><span>powershell</span><button type="button" class="copy-button">Copy</button></div><pre><code>cd server
+npm run init-db</code></pre></div>
+<p>Read every initializer warning. It runs statements individually and continues after statement failures, so a successful process exit does not prove that every schema change succeeded. Verify that <code>users</code>, <code>patient_profiles</code>, and <code>appointments</code> exist and that the required columns match <code>server/db/schema.sql</code>. An alternative is to apply that SQL using your database administration tool.</p>
+<p>No demo seed script is included. Create disposable users through Clerk and sample profiles/appointments through the UI when you need development data. The schema file contains an old library-system comment; its actual tables are for the current dental application.</p>
+<h3 id="start-the-application"><a class="heading-link" href="#start-the-application">Start the application</a></h3>
+<p>In one terminal, from the repository root:</p>
+<div class="code-block"><div class="code-toolbar"><span>powershell</span><button type="button" class="copy-button">Copy</button></div><pre><code>cd server
+npm run dev</code></pre></div>
+<p>In a second terminal, from the repository root:</p>
+<div class="code-block"><div class="code-toolbar"><span>powershell</span><button type="button" class="copy-button">Copy</button></div><pre><code>cd client
+npm run dev</code></pre></div>
+<p>Open <code>http://localhost:5173</code>. Vite may select a different available port. With a localhost origin configured, the server also permits HTTP localhost aliases on other ports.</p>
+<p>Check database connectivity separately:</p>
+<div class="code-block"><div class="code-toolbar"><span>powershell</span><button type="button" class="copy-button">Copy</button></div><pre><code>Invoke-RestMethod http://localhost:4000/healthz</code></pre></div>
+<p>The expected success body is <code>{&quot;status&quot;:&quot;ok&quot;,&quot;db&quot;:true}</code>. This checks one database query, not schema completeness or Clerk authentication. The current home page is a marketing page and does not include the old README&#39;s database-check button.</p>
+<h3 id="bootstrap-administration"><a class="heading-link" href="#bootstrap-administration">Bootstrap administration</a></h3>
+<p>Create a user in your configured Clerk application, then set that user&#39;s public metadata role to <code>superadmin</code> using your Clerk administration access:</p>
+<div class="code-block"><div class="code-toolbar"><span>json</span><button type="button" class="copy-button">Copy</button></div><pre><code>{ &quot;role&quot;: &quot;superadmin&quot; }</code></pre></div>
+<p>Sign in with that user and make a protected application request to synchronize the local row. There is no public role-bootstrap API. Changing only the PostgreSQL role is temporary because later synchronization overwrites it from Clerk. Refresh or sign in again if the UI still shows old metadata.</p>
+</section>
+<section class="chapter" aria-labelledby="configuration-reference">
+<h2 id="configuration-reference"><a class="heading-link" href="#configuration-reference">Configuration reference</a></h2>
+<div class="table-scroll" role="region" aria-label="Variable, Location, Behavior table" tabindex="0"><table><thead><tr><th scope="col">Variable</th><th scope="col">Location</th><th scope="col">Behavior</th></tr></thead><tbody><tr><td>DATABASE_URL</td><td>Server</td><td>PostgreSQL connection string used by the pool and initializer</td></tr><tr><td>CLERK_SECRET_KEY</td><td>Server SDK</td><td>Clerk backend credential</td></tr><tr><td>CLERK_PUBLISHABLE_KEY</td><td>Server SDK</td><td>Matching Clerk application publishable key</td></tr><tr><td>PORT</td><td>Server</td><td>HTTP port; defaults to 4000</td></tr><tr><td>CLIENT_URL / CLIENT_URLS</td><td>Server</td><td>Comma-separated allowed frontend origins</td></tr><tr><td>FRONTEND_URL / FRONTEND_URLS</td><td>Server</td><td>Additional comma-separated allowed origins</td></tr><tr><td>VERCEL_URL</td><td>Server</td><td>If present, adds an origin prefixed with https://</td></tr><tr><td>LOG_LEVEL</td><td>Server</td><td>debug, info, warn, error; default/fallback info</td></tr><tr><td>LOG_FILE</td><td>Server</td><td>Log destination; default server/logs/app.log; relative overrides resolve from the process working directory</td></tr><tr><td>NODE_ENV</td><td>Server</td><td>production omits Error stack fields from structured logger output</td></tr><tr><td>VITE_API_URL</td><td>Client</td><td>API origin; defaults to http://localhost:4000</td></tr><tr><td>VITE_CLERK_PUBLISHABLE_KEY</td><td>Client</td><td>Required to render the Clerk-enabled application</td></tr><tr><td>VITE_REMOTE_LOGGING</td><td>Client</td><td>Only the literal string false disables remote logging</td></tr></tbody></table></div>
+<p>CORS combines all configured origins, trims whitespace, and removes trailing slashes. Requests without an Origin are accepted. When no origins are configured, all origins are accepted and the server logs a warning. If any configured origin is localhost, 127.0.0.1, or IPv6 loopback, HTTP origins on those loopback hosts are accepted on any port. Otherwise an unlisted origin receives 403. CORS credentials are enabled.</p>
+</section>
+<section class="chapter" aria-labelledby="roles-and-permissions">
+<h2 id="roles-and-permissions"><a class="heading-link" href="#roles-and-permissions">Roles and permissions</a></h2>
+<p>The role hierarchy is <code>member &lt; secretary &lt; admin &lt; superadmin</code>. The backend trims and lowercases role metadata; unknown roles fall back to member. Legacy <code>librarian</code> metadata is treated as member, and schema initialization changes old local librarian rows to member. Client normalization lowercases but does not trim; keep metadata values canonical.</p>
+<h3 id="interface-access"><a class="heading-link" href="#interface-access">Interface access</a></h3>
+<div class="table-scroll" role="region" aria-label="Screen or action, Member, Secretary, Admin, Superadmin table" tabindex="0"><table><thead><tr><th scope="col">Screen or action</th><th scope="col">Member</th><th scope="col">Secretary</th><th scope="col">Admin</th><th scope="col">Superadmin</th></tr></thead><tbody><tr><td>Sign in, own profile, reservation, own bookings</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>Patient directory</td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>Create profile controls</td><td>Yes</td><td>Hidden</td><td>Yes</td><td>Yes</td></tr><tr><td>Edit Details control</td><td>Own</td><td>Hidden</td><td>Hidden</td><td>Hidden</td></tr><tr><td>Approval screen</td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>New reservation status</td><td>Pending</td><td>Approved</td><td>Approved</td><td>Approved</td></tr><tr><td>Dashboard, users, database inspector</td><td>No</td><td>No</td><td>Yes</td><td>Yes</td></tr><tr><td>Manage another user&#39;s role/record</td><td>No</td><td>No</td><td>Lower ranks only</td><td>Lower ranks only</td></tr></tbody></table></div>
+<h3 id="backend-enforcement"><a class="heading-link" href="#backend-enforcement">Backend enforcement</a></h3>
+<p>Every authenticated user can create a profile or appointment. The server sets <code>user_id</code> to the authenticated caller, ignoring a supplied <code>userId</code>. Staff-created profiles and appointments therefore belong to the staff creator, even when the appointment refers to another user&#39;s patient profile. There is no owner reassignment endpoint.</p>
+<p>Members can list, update, or delete only their own applicable records; secretary/admin/superadmin can manage all profiles and appointments. The secretary&#39;s hidden create-profile control and the staff-hidden Edit Details control are interface restrictions, not API permission restrictions. There is no profile-deletion API.</p>
+<p>Only admin and superadmin can list users or view the database inspector API. Administrators can manage another user only if their rank is strictly higher, and can assign only a lower-ranked role. Equal-rank accounts cannot manage one another. An administrator may update their own username while retaining their role; nobody can delete their own local record, and a superadmin cannot demote themselves.</p>
+<p>Deleting a user removes the application database row and cascades to that user&#39;s profiles and appointments. It does not delete the Clerk identity or revoke sign-in. A later protected request can recreate the user row, but does not restore deleted patient data.</p>
+</section>
+<section class="chapter" aria-labelledby="user-guide-and-page-reference">
+<h2 id="user-guide-and-page-reference"><a class="heading-link" href="#user-guide-and-page-reference">User guide and page reference</a></h2>
+<div class="table-scroll" role="region" aria-label="URL, Purpose and access table" tabindex="0"><table><thead><tr><th scope="col">URL</th><th scope="col">Purpose and access</th></tr></thead><tbody><tr><td>/</td><td>Public dental landing page with promotional content</td></tr><tr><td>/sign-in</td><td>Clerk sign-in; optional redirect_url query parameter</td></tr><tr><td>/sign-up</td><td>Clerk sign-up; optional redirect_url query parameter</td></tr><tr><td>/my-profile</td><td>Signed-in profile details, selection, creation, editing, and history</td></tr><tr><td>/reservation</td><td>Signed-in reservation form; ?edit=APPOINTMENT_ID loads an editable own booking</td></tr><tr><td>/booked</td><td>Signed-in user&#39;s own appointments, status, countdown, and archives</td></tr><tr><td>/patients</td><td>Staff directory with text search</td></tr><tr><td>/patients/create</td><td>Profile page in create mode when the user&#39;s UI permissions allow creation</td></tr><tr><td>/patients/:profileId</td><td>Accessible profile details and appointment history</td></tr><tr><td>/secretary/appointments</td><td>Staff approval queue and archive view</td></tr><tr><td>/users</td><td>Administrator user search, edit, and deletion</td></tr><tr><td>/db</td><td>Administrator database inspector and error-log test</td></tr><tr><td>/admin/dashboard</td><td>Administrator activity dashboard</td></tr></tbody></table></div>
+<p>Unrecognized client paths redirect to <code>/</code>. Access checks live in individual pages; the route list itself is not a centralized authorization guard. API checks remain the data access boundary.</p>
+<h3 id="patient-profiles"><a class="heading-link" href="#patient-profiles">Patient profiles</a></h3>
+<p>Sign in and open My Profile. Create a profile, fill in its details, and save. A user may own multiple profiles. Personal information includes first/last name, birth date, gender, phone, email, and address. The UI also requires emergency contact name, relationship and phone, preferred contact method, communication preference, and language. Patients under 18 require guardian name, relationship, and phone. Allergies and notes are additional text fields.</p>
+<p>Profile defaults are Phone for preferred contact, WhatsApp for communication, and English for language. Older SMS values are normalized to WhatsApp when building a profile payload; this does not send a message. Age is calculated from date of birth in the browser.</p>
+<p>For a photo, choose JPEG, PNG, WebP, or GIF up to 2 MiB (2,097,152 bytes). Existing profiles have a separate Save Photo action. Saving details also uploads a selected pending photo after the profile is saved. Remove deletes a saved photo immediately. These are separate HTTP operations: a photo upload can fail after profile details have already saved.</p>
+<p>The patient detail screen links the profile to appointment history. It first matches appointments by profile ID, with a name-and-birth-date fallback for older entries. Staff can use the Patients directory and search by name, email, phone, address, or gender.</p>
+<h3 id="request-an-appointment"><a class="heading-link" href="#request-an-appointment">Request an appointment</a></h3>
+<ol><li>Sign in and create or select a saved patient profile.</li><li>Open Book Appointment and select that profile.</li><li>Enter the reason for the visit and select low, medium, or high urgency.</li><li>Choose a duration, weekday date, and offered future time.</li><li>Review the entered information and submit.</li><li>Open Booked Appointments to follow the request.</li></ol>
+<p>The interface offers 30 minutes for a displayed $10 or 60 minutes for a displayed $20. Available choices cover weekdays from today through one month ahead, with starts in 30-minute increments between 08:00 and 17:00, ending by closing time. There is no dentist selector or occupied-slot conflict check.</p>
+<p>The reservation form expects a multi-part name using Latin letters, spaces, apostrophes, or hyphens; a derived age between 1 and 120; and guardian contact for a minor. It requires a reason of at least 10 characters with at least six Latin letters and rejects certain placeholder strings. English keyword matching can reject low urgency for listed symptoms or display an urgent-care notice. This is static form logic, not an AI service or clinical assessment system.</p>
+<h3 id="pending-approval-and-archives"><a class="heading-link" href="#pending-approval-and-archives">Pending, approval, and archives</a></h3>
+<p>Member submissions are marked pending by the client and receive an edit deadline 24 hours after creation. Editing retains the original deadline. The member UI enables editing and cancellation only while the request is pending and that deadline is in the future. Cancellation deletes the appointment record rather than setting a canceled status.</p>
+<p>Staff submissions are immediately marked approved by the client. The staff approval page lists requests, links patient details, and allows approval or decline. It records actor IDs and timestamps in the update payload.</p>
+<p>Declined entries, explicit archived entries, and approved appointments whose start time has passed appear in archive views. Passing the appointment date does not automatically archive pending entries. Archival is mainly calculated in the browser; it does not require a database update or scheduled job. Legacy entries without a status display as approved.</p>
+<blockquote><p>The 24-hour deadline, status transitions, staff-only approval, scheduling hours, and most form validation are not enforced by the appointment update API. See Current limitations before relying on these as backend guarantees.</p></blockquote>
+<h3 id="administrator-workflow"><a class="heading-link" href="#administrator-workflow">Administrator workflow</a></h3>
+<p>Open the dashboard for today&#39;s appointments, total patient profiles, staff-role user count, pending requests, recent patients, and common reason-for-visit strings. Search filters today&#39;s appointments. The displayed staff count represents roles, not live presence. Popular Services groups free-text medicalIssue values; Add Service opens the reservation page.</p>
+<p>The notifications badge, operational-status message, seven dentists on duty, and 18-minute wait estimate are hardcoded presentation content. Dashboard dates use a UTC date string for today&#39;s grouping. Its appointment table renders pending as Pending and other statuses as Confirmed; use the approval page for the underlying status.</p>
+<p>Open Users to search by username, email, or role. Edit changes the Clerk username, Clerk metadata, and local user row. These operations are sequential across services and are not a distributed transaction. Delete has the cascading behavior described in Roles and permissions.</p>
+<p>Open DB to inspect every table in the public schema. The page hides the binary profile_picture column visually, but the API still returns it. Refresh reloads data. Test Error Log calls a deliberately unimplemented <code>/api/debug/fail-log-test</code> URL, causing a normal 404 and a browser log entry.</p>
+</section>
+<section class="chapter" aria-labelledby="api-reference">
+<h2 id="api-reference"><a class="heading-link" href="#api-reference">API reference</a></h2>
+<p>Base URL in development: <code>http://localhost:4000</code>. Except for health and log ingestion, requests use <code>Authorization: Bearer CLERK_SESSION_TOKEN</code>. JSON requests use <code>Content-Type: application/json</code>; photo uploads use a raw image body and its image MIME type. No pagination or filter query contract is implemented on collection endpoints.</p>
+<p>The server generates or echoes <code>X-Request-Id</code> on responses. Centralized failures include <code>error</code> and <code>requestId</code> in JSON. Explicit route-level errors may include only <code>error</code>. Clerk middleware owns unauthenticated responses; verify its configured behavior instead of assuming every authentication failure uses the application JSON error shape.</p>
+<h3 id="complete-endpoint-inventory"><a class="heading-link" href="#complete-endpoint-inventory">Complete endpoint inventory</a></h3>
+<div class="table-scroll" role="region" aria-label="Method, Path, Access, Success response table" tabindex="0"><table><thead><tr><th scope="col">Method</th><th scope="col">Path</th><th scope="col">Access</th><th scope="col">Success response</th></tr></thead><tbody><tr><td>GET</td><td>/healthz</td><td>Public</td><td>200: status and database query result</td></tr><tr><td>GET</td><td>/healthz/healthz</td><td>Public</td><td>Same health handler; compatibility alias</td></tr><tr><td>POST</td><td>/api/logs</td><td>Public</td><td>202: accepted count and requestId</td></tr><tr><td>GET</td><td>/api/me</td><td>Authenticated</td><td>200: Clerk ID, first email, normalized role; synchronizes user</td></tr><tr><td>GET</td><td>/api/users</td><td>Admin/superadmin</td><td>200: all local users, newest first</td></tr><tr><td>PUT</td><td>/api/users/:userId</td><td>Admin/superadmin plus hierarchy</td><td>200: updated local user</td></tr><tr><td>DELETE</td><td>/api/users/:userId</td><td>Admin/superadmin plus hierarchy</td><td>200: success and removed ID</td></tr><tr><td>GET</td><td>/api/records/profiles</td><td>Own records or staff</td><td>200: profile array, newest first</td></tr><tr><td>POST</td><td>/api/records/profiles</td><td>Authenticated</td><td>201: created profile</td></tr><tr><td>PUT</td><td>/api/records/profiles/:id</td><td>Owner or staff</td><td>200: updated profile</td></tr><tr><td>PUT</td><td>/api/records/profiles/:id/profile-picture</td><td>Owner or staff</td><td>200: updated profile with photo</td></tr><tr><td>DELETE</td><td>/api/records/profiles/:id/profile-picture</td><td>Owner or staff</td><td>200: updated profile without photo</td></tr><tr><td>GET</td><td>/api/records/appointments</td><td>Own records or staff</td><td>200: array ordered by date and time</td></tr><tr><td>POST</td><td>/api/records/appointments</td><td>Authenticated</td><td>201: created appointment</td></tr><tr><td>PUT</td><td>/api/records/appointments/:id</td><td>Owner or staff</td><td>200: updated appointment</td></tr><tr><td>DELETE</td><td>/api/records/appointments/:id</td><td>Owner or staff</td><td>200: {&quot;success&quot;:true}</td></tr><tr><td>GET</td><td>/api/records/admin/database</td><td>Admin/superadmin</td><td>200: array of {name, records} for public tables</td></tr></tbody></table></div>
+<p>There is no GET-by-ID profile or appointment endpoint. Pages fetch a visible collection and select an item locally. There are no <code>/api/patients</code>, <code>/api/treatments</code>, <code>/api/billing</code>, or <code>/api/ai</code> routes.</p>
+<h3 id="profile-payload"><a class="heading-link" href="#profile-payload">Profile payload</a></h3>
+<p>Create requires a caller-generated unique <code>id</code>; browser code uses <code>crypto.randomUUID()</code>. Send the full profile when creating or updating. The update is not a partial patch: omitted regular fields become null, which may erase optional values or fail database constraints. A photo is preserved on update when <code>profilePicture</code> is omitted.</p>
+<div class="code-block"><div class="code-toolbar"><span>json</span><button type="button" class="copy-button">Copy</button></div><pre><code>{
+  &quot;id&quot;: &quot;example-profile-001&quot;,
+  &quot;firstName&quot;: &quot;Alex&quot;,
+  &quot;lastName&quot;: &quot;Example&quot;,
+  &quot;dateOfBirth&quot;: &quot;1990-04-12&quot;,
+  &quot;gender&quot;: &quot;Other&quot;,
+  &quot;phone&quot;: &quot;+0000000000&quot;,
+  &quot;email&quot;: &quot;alex@example.com&quot;,
+  &quot;address&quot;: &quot;Example address&quot;,
+  &quot;guardianName&quot;: &quot;&quot;,
+  &quot;guardianRelationship&quot;: &quot;&quot;,
+  &quot;guardianPhone&quot;: &quot;&quot;,
+  &quot;emergencyContactName&quot;: &quot;Sam Example&quot;,
+  &quot;emergencyContactRelationship&quot;: &quot;Sibling&quot;,
+  &quot;emergencyContactPhone&quot;: &quot;+0000000001&quot;,
+  &quot;allergies&quot;: &quot;&quot;,
+  &quot;notes&quot;: &quot;Example data only&quot;,
+  &quot;preferredContactMethod&quot;: &quot;Phone&quot;,
+  &quot;communicationPreference&quot;: &quot;WhatsApp&quot;,
+  &quot;language&quot;: &quot;English&quot;
+}</code></pre></div>
+<p>Responses add <code>userId</code>, <code>createdAt</code>, <code>updatedAt</code>, <code>profilePicture</code>, and <code>profilePictureType</code>. Most absent text fields become empty strings. Birth dates use YYYY-MM-DD. Photos return as base64 plus a MIME type; construct a data URL using those fields.</p>
+<p>The JSON API also accepts <code>profilePicture</code> as a supported image data URL or base64 paired with <code>profilePictureType</code>. Empty photo input clears the photo. The UI uses the separate binary endpoint, which accepts the file itself, not multipart form-data. The size/type checks trust the supplied MIME type and do not inspect image file signatures.</p>
+<h3 id="appointment-payload"><a class="heading-link" href="#appointment-payload">Appointment payload</a></h3>
+<p>Create requires <code>id</code> and a valid future <code>date</code>/<code>time</code>, plus the database&#39;s non-null fields. The example date is illustrative: replace it with an actual future date. Send the complete writable field set on updates; omitted fields become null. Server-generated ownership and creation timestamps are not taken from the request.</p>
+<div class="code-block"><div class="code-toolbar"><span>json</span><button type="button" class="copy-button">Copy</button></div><pre><code>{
+  &quot;id&quot;: &quot;example-appointment-001&quot;,
+  &quot;profileId&quot;: &quot;example-profile-001&quot;,
+  &quot;name&quot;: &quot;Alex Example&quot;,
+  &quot;dateOfBirth&quot;: &quot;1990-04-12&quot;,
+  &quot;guardianContact&quot;: &quot;&quot;,
+  &quot;medicalIssue&quot;: &quot;Routine dental checkup requested&quot;,
+  &quot;emergencyLevel&quot;: &quot;low&quot;,
+  &quot;duration&quot;: 30,
+  &quot;date&quot;: &quot;2099-01-05&quot;,
+  &quot;time&quot;: &quot;09:00&quot;,
+  &quot;status&quot;: &quot;pending&quot;,
+  &quot;requestedByRole&quot;: &quot;member&quot;,
+  &quot;editableUntil&quot;: &quot;2099-01-02T09:00:00.000Z&quot;,
+  &quot;approvedAt&quot;: null,
+  &quot;approvedBy&quot;: null,
+  &quot;declinedAt&quot;: null,
+  &quot;declinedBy&quot;: null
+}</code></pre></div>
+<p>The client normally sets editableUntil to creation time plus 24 hours. The server currently accepts the supplied deadline and status/actor metadata. A linked profile must exist due to its foreign key, but the API does not verify that the caller owns that profile when creating or updating an appointment.</p>
+<p>Appointment responses contain the original snake_case database fields plus camelCase aliases. Use <code>date</code> (YYYY-MM-DD), <code>time</code> (HH:mm), <code>userId</code>, <code>profileId</code>, <code>medicalIssue</code>, <code>emergencyLevel</code>, and the camelCase audit fields in client code. Unlike profile responses, appointment responses are not exclusively camelCase.</p>
+<h3 id="user-update-and-logging-payloads"><a class="heading-link" href="#user-update-and-logging-payloads">User update and logging payloads</a></h3>
+<p>A user update requires a nonempty trimmed username and an exact supported lowercase role. It first updates the username in Clerk, then public metadata, then PostgreSQL.</p>
+<div class="code-block"><div class="code-toolbar"><span>json</span><button type="button" class="copy-button">Copy</button></div><pre><code>{ &quot;username&quot;: &quot;clinic_secretary&quot;, &quot;role&quot;: &quot;secretary&quot; }</code></pre></div>
+<p>Logs accept one entry or a <code>logs</code> array. At most 25 entries are processed per request. Levels are debug, info, warn, and error; unknown levels become info. String fields are truncated to 1,000 characters, and context accepts at most 50 top-level keys.</p>
+<div class="code-block"><div class="code-toolbar"><span>json</span><button type="button" class="copy-button">Copy</button></div><pre><code>{
+  &quot;logs&quot;: [{
+    &quot;level&quot;: &quot;info&quot;,
+    &quot;message&quot;: &quot;Documentation example&quot;,
+    &quot;source&quot;: &quot;browser&quot;,
+    &quot;timestamp&quot;: &quot;2026-09-05T09:00:00.000Z&quot;,
+    &quot;url&quot;: &quot;http://localhost:5173/&quot;,
+    &quot;context&quot;: { &quot;screen&quot;: &quot;example&quot; }
+  }]
+}</code></pre></div>
+<h3 id="response-errors"><a class="heading-link" href="#response-errors">Response errors</a></h3>
+<div class="table-scroll" role="region" aria-label="Status, Typical meaning table" tabindex="0"><table><thead><tr><th scope="col">Status</th><th scope="col">Typical meaning</th></tr></thead><tbody><tr><td>400</td><td>Missing ID, invalid future date/time on creation, invalid image type/body, malformed JSON, invalid user update</td></tr><tr><td>403</td><td>Insufficient ownership/role, forbidden user hierarchy operation, or blocked CORS origin</td></tr><tr><td>404</td><td>Missing record, unmatched endpoint, or inaccessible appointment deletion</td></tr><tr><td>409</td><td>PostgreSQL unique violation, such as duplicate ID, email, or username</td></tr><tr><td>413</td><td>JSON payload or raw photo exceeds parser limit</td></tr><tr><td>500</td><td>Unmapped database/service failure; public message is Server error</td></tr></tbody></table></div>
+<p>Foreign-key and not-null violations are not explicitly mapped to a client error, and can therefore return 500. Do not interpret the database&#39;s default values as API defaults: insert helpers explicitly supply null for missing writable fields.</p>
+</section>
+<section class="chapter" aria-labelledby="database-reference">
+<h2 id="database-reference"><a class="heading-link" href="#database-reference">Database reference</a></h2>
+<p>The schema uses string primary keys. Users use Clerk IDs; the client generates profile and appointment UUID strings. There is no ORM, migration-history table, soft-delete layer, or database row-level ownership policy in the supplied SQL.</p>
+<div class="code-block"><div class="code-toolbar"><span>text</span><button type="button" class="copy-button">Copy</button></div><pre><code>users.id --&lt; patient_profiles.user_id  (delete user: cascade)
+users.id --&lt; appointments.user_id      (delete user: cascade)
+patient_profiles.id --&lt; appointments.profile_id (delete profile: set null)</code></pre></div>
+<h3 id="users"><a class="heading-link" href="#users">users</a></h3>
+<div class="table-scroll" role="region" aria-label="Column, Type / rule, Meaning table" tabindex="0"><table><thead><tr><th scope="col">Column</th><th scope="col">Type / rule</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td>id</td><td>VARCHAR(255), primary key</td><td>Clerk user ID</td></tr><tr><td>username</td><td>VARCHAR(255), unique</td><td>Clerk username or synchronization fallback</td></tr><tr><td>email</td><td>VARCHAR(255), unique, not null</td><td>First Clerk email address</td></tr><tr><td>role</td><td>VARCHAR(50), default member</td><td>Application role; no SQL role enum/check</td></tr><tr><td>created_at</td><td>TIMESTAMP, default NOW()</td><td>Local row creation</td></tr></tbody></table></div>
+<p>Synchronization fetches the Clerk user on each protected records request and applicable users/me requests. Username fallback order is Clerk username, public metadata username, first name, then email local part. It updates by ID; if absent, it tries matching by email before inserting. That transaction can still encounter uniqueness or foreign-key errors. Foreign keys do not declare ON UPDATE CASCADE, so reconciling an old user ID with dependent records needs care.</p>
+<h3 id="patient-profiles-2"><a class="heading-link" href="#patient-profiles-2">patient_profiles</a></h3>
+<div class="table-scroll" role="region" aria-label="Columns, Type / rule table" tabindex="0"><table><thead><tr><th scope="col">Columns</th><th scope="col">Type / rule</th></tr></thead><tbody><tr><td>id</td><td>VARCHAR(255), primary key</td></tr><tr><td>user_id</td><td>VARCHAR(255), required users foreign key</td></tr><tr><td>first_name, last_name</td><td>VARCHAR(255), not null, default empty string</td></tr><tr><td>date_of_birth</td><td>DATE</td></tr><tr><td>gender, phone</td><td>VARCHAR(100)</td></tr><tr><td>email</td><td>VARCHAR(255)</td></tr><tr><td>address</td><td>TEXT</td></tr><tr><td>profile_picture</td><td>BYTEA</td></tr><tr><td>profile_picture_type</td><td>VARCHAR(100)</td></tr><tr><td>guardian_name, guardian_relationship</td><td>VARCHAR(255)</td></tr><tr><td>guardian_phone</td><td>VARCHAR(100)</td></tr><tr><td>emergency_contact_name, emergency_contact_relationship</td><td>VARCHAR(255)</td></tr><tr><td>emergency_contact_phone</td><td>VARCHAR(100)</td></tr><tr><td>allergies, notes</td><td>TEXT</td></tr><tr><td>preferred_contact_method, communication_preference, language</td><td>VARCHAR(100)</td></tr><tr><td>created_at, updated_at</td><td>TIMESTAMP, default NOW()</td></tr></tbody></table></div>
+<p>There is an index on user_id. No uniqueness rule limits a user to one profile. API updates explicitly set updated_at; there is no database trigger maintaining it for direct SQL changes.</p>
+<h3 id="appointments"><a class="heading-link" href="#appointments">appointments</a></h3>
+<div class="table-scroll" role="region" aria-label="Columns, Type / rule table" tabindex="0"><table><thead><tr><th scope="col">Columns</th><th scope="col">Type / rule</th></tr></thead><tbody><tr><td>id</td><td>VARCHAR(255), primary key</td></tr><tr><td>user_id</td><td>VARCHAR(255), required users foreign key</td></tr><tr><td>profile_id</td><td>VARCHAR(255), nullable patient_profiles foreign key</td></tr><tr><td>name</td><td>VARCHAR(255), not null</td></tr><tr><td>date_of_birth</td><td>DATE</td></tr><tr><td>guardian_contact</td><td>TEXT</td></tr><tr><td>medical_issue</td><td>TEXT, not null</td></tr><tr><td>emergency_level</td><td>VARCHAR(50), not null</td></tr><tr><td>duration</td><td>INTEGER, not null</td></tr><tr><td>appointment_date, appointment_time</td><td>DATE and TIME, both not null</td></tr><tr><td>status</td><td>VARCHAR(50), not null, default pending</td></tr><tr><td>requested_by_role</td><td>VARCHAR(50)</td></tr><tr><td>editable_until</td><td>TIMESTAMPTZ</td></tr><tr><td>approved_at, declined_at</td><td>TIMESTAMP</td></tr><tr><td>approved_by, declined_by</td><td>VARCHAR(255), no foreign keys</td></tr><tr><td>created_at, updated_at</td><td>TIMESTAMP, default NOW()</td></tr></tbody></table></div>
+<p>Indexes cover user_id and profile_id. There is no unique appointment-slot index or exclusion constraint to prevent overlap. There are no SQL checks restricting status, urgency, or positive/supported durations.</p>
+<h3 id="dates-and-schema-changes"><a class="heading-link" href="#dates-and-schema-changes">Dates and schema changes</a></h3>
+<p>The edit deadline is an absolute instant stored in TIMESTAMPTZ. The schema includes a conversion of older editable_until timestamps using UTC. Other timestamp columns do not carry a timezone. Appointment date and time have no clinic timezone column; the browser and server interpret their combined value in their respective local timezones. Use consistent environments and verify cross-timezone behavior when deploying.</p>
+<p>The schema&#39;s compatibility statements add username/photo columns, create indexes, normalize librarian roles, and convert the edit deadline. They run each time the initializer runs. Review them against the existing schema and session timezone before reapplying to a populated database; this is not a versioned migration runner. Back up data before operational schema changes.</p>
+</section>
+<section class="chapter" aria-labelledby="logging-and-troubleshooting">
+<h2 id="logging-and-troubleshooting"><a class="heading-link" href="#logging-and-troubleshooting">Logging and troubleshooting</a></h2>
+<p>Server logs are JSON lines written to console and <code>server/logs/app.log</code>, unless LOG_FILE overrides that destination. The logger redacts object keys matching authorization, token, password, secret, cookie, session, or API-key patterns, limits nesting, and truncates arrays/objects. Redaction does not remove sensitive information embedded in arbitrary message strings or URLs.</p>
+<p>Morgan records method, URL, status, duration, origin, user context, and request ID. Raw profile-photo diagnostics use console.log and are not necessarily written to the structured log file. There is no built-in log rotation or retention policy.</p>
+<p>The browser logger queues at most 100 entries, sends batches of 10, schedules a flush after one second for ordinary messages, and attempts an immediate flush for errors. It listens for unhandled errors and promise rejections and uses sendBeacon when the page becomes hidden. It requeues fetch failures but has no durable storage or guaranteed-delivery contract.</p>
+<h3 id="view-logs-as-html"><a class="heading-link" href="#view-logs-as-html">View logs as HTML</a></h3>
+<p>From the repository root:</p>
+<div class="code-block"><div class="code-toolbar"><span>powershell</span><button type="button" class="copy-button">Copy</button></div><pre><code>npm --prefix server run logs:html
+npm --prefix server run logs:html:watch</code></pre></div>
+<p>Open <code>server/logs/app.html</code>. The log HTML refreshes every two seconds; watch mode regenerates it when the log file changes. With custom paths:</p>
+<div class="code-block"><div class="code-toolbar"><span>powershell</span><button type="button" class="copy-button">Copy</button></div><pre><code>node server/scripts/logs-to-html.js path/to/input.log path/to/output.html --watch</code></pre></div>
+<p>The log generator uses its default file paths or positional arguments; it does not automatically read LOG_FILE from the application&#39;s dotenv configuration. This log viewer is separate from the application handbook generator.</p>
+<h3 id="common-problems"><a class="heading-link" href="#common-problems">Common problems</a></h3>
+<div class="table-scroll" role="region" aria-label="Symptom, Check or action table" tabindex="0"><table><thead><tr><th scope="col">Symptom</th><th scope="col">Check or action</th></tr></thead><tbody><tr><td>Missing Clerk publishable key screen</td><td>Set VITE_CLERK_PUBLISHABLE_KEY in client/.env.local and restart Vite</td></tr><tr><td>Authentication fails</td><td>Verify matching Clerk application keys, current session, and Bearer token; inspect backend Clerk errors</td></tr><tr><td>Role changes disappear</td><td>Change Clerk public metadata, since synchronization overwrites the local database role</td></tr><tr><td>UI still shows previous role</td><td>Refresh Clerk user/session data or sign in again</td></tr><tr><td>CORS 403</td><td>Put the frontend origin in CLIENT_URLS or FRONTEND_URLS and restart the server</td></tr><tr><td>Health endpoint fails</td><td>Check DATABASE_URL, credentials, network access, and required SSL support</td></tr><tr><td>Health works but records fail</td><td>Confirm all schema statements and user synchronization succeed; health only runs SELECT 1</td></tr><tr><td>Duplicate-record 409</td><td>Inspect ID/email/username uniqueness and synchronization fallback collisions</td></tr><tr><td>Photo fails</td><td>Check MIME type, 2 MiB size, raw upload body, proxy limits, and photo schema columns</td></tr><tr><td>Appointment time appears inconsistent</td><td>Compare browser, server, and database timezones and the editable_until column type</td></tr><tr><td>Appointment cannot be edited in UI</td><td>Check pending status and original 24-hour deadline; approved requests are locked in the UI</td></tr><tr><td>Staff-created record missing from a member account</td><td>Ownership is assigned to the authenticated creator, not the selected patient owner</td></tr><tr><td>Empty or stale lists</td><td>Inspect failed network calls and refresh; several pages only log fetch failures to console</td></tr><tr><td>Log viewer empty with custom logging</td><td>Pass the actual LOG_FILE path as the generator&#39;s first argument</td></tr><tr><td>Deep link returns host 404</td><td>Configure the frontend host to rewrite SPA paths to index.html</td></tr><tr><td>Documentation looks stale</td><td>Regenerate docs/index.html and refresh; watch mode does not reload the browser</td></tr></tbody></table></div>
+</section>
+<section class="chapter" aria-labelledby="build-deployment-and-maintenance">
+<h2 id="build-deployment-and-maintenance"><a class="heading-link" href="#build-deployment-and-maintenance">Build, deployment, and maintenance</a></h2>
+<p>Build the client and start the server as separate processes:</p>
+<div class="code-block"><div class="code-toolbar"><span>powershell</span><button type="button" class="copy-button">Copy</button></div><pre><code>npm --prefix client run build
+npm --prefix server start</code></pre></div>
+<p>The client build goes to <code>client/dist</code>. <code>npm --prefix client run preview</code> previews the built client locally. Deployment must provide static hosting with SPA fallback and a reachable Express service; there is no deployment pipeline, Docker configuration, or frontend-serving Express route included.</p>
+<p>Configure the client API origin before building, configure backend allowed origins, supply backend secrets in the runtime environment, and apply the schema through a reviewed database process. Set NODE_ENV=production for server error-stack logging behavior. Keep the database and log storage persistent where required. The app has no application-managed backup/restore feature.</p>
+<p>For maintenance, back up PostgreSQL using your database tooling and verify restoration on a separate environment. Include patient photo bytes in the backup. Avoid using the admin database JSON response as a backup format. Retain schema changes alongside code, and review both the Clerk role source and local database when investigating account issues.</p>
+<h3 id="existing-checks-and-a-manual-smoke-test"><a class="heading-link" href="#existing-checks-and-a-manual-smoke-test">Existing checks and a manual smoke test</a></h3>
+<div class="code-block"><div class="code-toolbar"><span>powershell</span><button type="button" class="copy-button">Copy</button></div><pre><code>npm --prefix client run lint
+npm --prefix client run build
+node server/tests/test-error-handler.js
+node scripts/generate-docs.cjs</code></pre></div>
+<p>The existing server test covers not-found errors, custom status/request IDs, malformed JSON, oversized payloads, PostgreSQL uniqueness errors, hidden internal errors, and forwarding after headers are sent. There is no npm test script, full API integration suite, or end-to-end suite in the current packages.</p>
+<p>Use disposable records for the following manual test:</p>
+<ol><li>Verify health, sign up/sign in, and trigger user synchronization.</li><li>Create a complete profile, reload, and verify persistence.</li><li>Upload and remove a supported photo, checking after reload.</li><li>Submit a future member appointment and verify pending status and countdown.</li><li>Edit and cancel a pending request within its window.</li><li>Submit another request, approve/decline it as staff, and verify member and archive views.</li><li>Confirm a second member cannot list or edit the first member&#39;s records.</li><li>Verify administrator hierarchy restrictions and dashboard/database access.</li><li>Run the DB page&#39;s error-log test and inspect its request ID in logs.</li></ol>
+<p>These are suggested verification steps, not a claim that the connected application has passed them.</p>
+</section>
+<section class="chapter" aria-labelledby="current-limitations-and-implementation-gaps">
+<h2 id="current-limitations-and-implementation-gaps"><a class="heading-link" href="#current-limitations-and-implementation-gaps">Current limitations and implementation gaps</a></h2>
+<p>This section records behavior visible in the repository so maintainers can distinguish interface expectations from server guarantees.</p>
+<div class="table-scroll" role="region" aria-label="Area, Current limitation and consequence table" tabindex="0"><table><thead><tr><th scope="col">Area</th><th scope="col">Current limitation and consequence</th></tr></thead><tbody><tr><td>Appointment authorization</td><td>Owners can submit status, approval actors, and edit deadlines to the API; approval and the 24-hour lock are primarily UI rules</td></tr><tr><td>Schedule validation</td><td>Creation validates a future date/time, but update does not; no backend hours, weekday, duration, or overlap enforcement</td></tr><tr><td>Profile linking</td><td>Appointment profileId is checked by a foreign key only, not against the caller&#39;s ownership</td></tr><tr><td>Patient form validation</td><td>Many required UI fields lack equivalent API validation; omitted PUT fields may clear data or cause SQL errors</td></tr><tr><td>Staff ownership</td><td>Created records always belong to the caller; no create-on-behalf ownership assignment</td></tr><tr><td>Timezones</td><td>Mixed local date/time interpretation and UTC-derived day strings can disagree near boundaries</td></tr><tr><td>Database transport</td><td>SSL certificate verification is disabled in both pool configurations</td></tr><tr><td>Database inspector</td><td>Returns every public table and all records, including hidden-in-UI binary photos; no pagination</td></tr><tr><td>CORS</td><td>Empty configuration permits all origins; local development configuration broadens loopback access</td></tr><tr><td>Public logs</td><td>Log ingestion requires no authentication and has no rate limiter; request size/count caps do not provide retention control</td></tr><tr><td>Photos</td><td>MIME type and size are checked, but file signatures/content are not validated</td></tr><tr><td>User synchronization</td><td>Depends on Clerk availability and local constraints; email-based ID reconciliation can conflict with dependent records</td></tr><tr><td>User management</td><td>Clerk username, metadata, and DB changes can partially succeed; deleting a DB user does not revoke Clerk access</td></tr><tr><td>Dashboard content</td><td>Some operational indicators are static; some status labels simplify actual states</td></tr><tr><td>Scale and freshness</td><td>Lists load complete collections including base64 photos; there is no pagination, live update channel, or server search</td></tr><tr><td>Schema operations</td><td>Initializer continues after errors and has no version history or all-or-nothing migration transaction</td></tr><tr><td>Tests</td><td>Existing automated coverage is limited to error middleware; workflow checks require configured services</td></tr></tbody></table></div>
+</section>
+<section class="chapter" aria-labelledby="documentation-maintenance">
+<h2 id="documentation-maintenance"><a class="heading-link" href="#documentation-maintenance">Documentation maintenance</a></h2>
+<p>When behavior changes, update the matching workflow, permission, API, configuration, and schema sections together. Pay particular attention to the distinction between UI controls and server checks. Update dependency ranges from the package manifests when necessary.</p>
+<p>The documentation generator only reads its Markdown and presentation assets. It does not inspect <code>.env</code> files, export patient data, query the database, invoke Clerk, or start the application. No live account or patient data is embedded in the generated HTML.</p>
+</section></article><div id="no-results" hidden><h2>No matching chapters</h2><p>Try a different term or clear the search field.</p><button id="clear-search" type="button">Clear search</button></div><footer class="document-footer">Maintained in docs/application.md · Generated with scripts/generate-docs.cjs<a href="#top">Back to top ↑</a></footer></main></div>
+<noscript><p class="noscript">All documentation is available below. Search, copy, and appearance controls require JavaScript; use your browser's Find and Print commands.</p></noscript><script>(() => {
+  'use strict';
+  const search = document.getElementById('search');
+  const chapters = [...document.querySelectorAll('.chapter')];
+  const links = [...document.querySelectorAll('nav a')];
+  const status = document.getElementById('search-status');
+  const index = chapters.map((chapter) => ({ chapter, text: chapter.textContent.toLowerCase() }));
+  const filter = () => {
+    const terms = search.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    let count = 0;
+    index.forEach(({ chapter, text }, position) => {
+      const match = terms.every((term) => text.includes(term));
+      chapter.hidden = !match;
+      links[position].hidden = !match;
+      if (match) count++;
+    });
+    status.textContent = terms.length ? `${count} of ${chapters.length} chapters match` : `${chapters.length} chapters · available offline`;
+    document.getElementById('no-results').hidden = count !== 0;
+  };
+  search.addEventListener('input', filter);
+  document.getElementById('clear-search').addEventListener('click', () => { search.value = ''; filter(); search.focus(); });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault(); search.focus();
+    }
+    if (event.key === 'Escape' && document.activeElement === search) { search.value = ''; filter(); }
+  });
+  // Reveal anchor targets even when a previous search hid their chapter.
+  document.addEventListener('click', (event) => {
+    const link = event.target.closest('a[href^="#"]');
+    if (!link) return;
+    const target = document.getElementById(link.getAttribute('href').slice(1));
+    if (target?.closest('.chapter')?.hidden) { search.value = ''; filter(); }
+  });
+  const revealHash = () => {
+    const target = document.getElementById(location.hash.slice(1));
+    if (target?.closest('.chapter')?.hidden) { search.value = ''; filter(); target.scrollIntoView(); }
+  };
+  window.addEventListener('hashchange', revealHash);
+
+  const themeButton = document.getElementById('theme');
+  const applyTheme = (theme) => {
+    document.documentElement.dataset.theme = theme;
+    themeButton.textContent = theme === 'dark' ? 'Light mode' : 'Dark mode';
+    themeButton.setAttribute('aria-pressed', String(theme === 'dark'));
+  };
+  let preferredTheme;
+  try { preferredTheme = localStorage.getItem('dentist-handbook-theme'); } catch { /* File URLs may deny storage. */ }
+  applyTheme(preferredTheme === 'dark' ? 'dark' : 'light');
+  themeButton.addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    try { localStorage.setItem('dentist-handbook-theme', next); } catch { /* Optional preference persistence. */ }
+  });
+  document.getElementById('print').addEventListener('click', () => window.print());
+
+  document.querySelectorAll('.copy-button').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const code = button.closest('.code-block').querySelector('pre code');
+      try {
+        await navigator.clipboard.writeText(code.textContent);
+        button.textContent = 'Copied';
+      } catch {
+        // Clipboard can be blocked for local files; select text for manual copying.
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(code);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        button.textContent = 'Selected — use Ctrl/Cmd+C';
+      }
+      setTimeout(() => { button.textContent = 'Copy'; }, 2500);
+    });
+  });
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const id = entry.target.id;
+        links.forEach((link) => {
+          if (link.getAttribute('href') === `#${id}`) link.setAttribute('aria-current', 'location');
+          else link.removeAttribute('aria-current');
+        });
+      });
+    }, { rootMargin: '-10% 0px -70% 0px' });
+    chapters.forEach((chapter) => observer.observe(chapter.querySelector('h2')));
+  }
+})();
+</script></body></html>

@@ -8,7 +8,10 @@
     "start": "node index.js",
     "init-db": "node db/init-db.js",
     "logs:html": "node scripts/logs-to-html.js",
-    "logs:html:watch": "node scripts/logs-to-html.js --watch"
+    "logs:html:watch": "node scripts/logs-to-html.js --watch",
+    "docs:html": "node ../scripts/generate-docs.cjs",
+    "docs:open": "node ../scripts/generate-docs.cjs --open",
+    "docs:watch": "node ../scripts/generate-docs.cjs --watch"
   },
   "keywords": [],
   "author": "",
