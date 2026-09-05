@@ -9,6 +9,7 @@ import {
   isBookingEditable,
 } from '../lib/bookings'
 import { deleteAppointment, getAppointments } from '../lib/recordsApi'
+import DatabaseLoading from '../components/DatabaseLoading'
 
 function formatCountdown(editableUntil) {
   const remaining = new Date(editableUntil).getTime() - Date.now()
@@ -31,6 +32,7 @@ export default function BookedPage() {
   const [bookings, setBookings] = useState([])
   const [now, setNow] = useState(Date.now())
   const [showArchived, setShowArchived] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000)
@@ -39,7 +41,8 @@ export default function BookedPage() {
 
   useEffect(() => {
     if (!isLoaded || !user) return
-    getAppointments(getToken).then((items) => setBookings(items.filter((booking) => booking.userId === user.id))).catch(console.error)
+    setLoading(true)
+    getAppointments(getToken).then((items) => setBookings(items.filter((booking) => booking.userId === user.id))).catch(console.error).finally(() => setLoading(false))
   }, [getToken, isLoaded, user])
 
   const cancelBooking = async (id) => {
@@ -57,11 +60,11 @@ export default function BookedPage() {
   )
   const visibleBookings = showArchived ? archivedBookings : activeBookings
 
-  if (!isLoaded) {
+  if (!isLoaded || (user && loading)) {
     return (
       <div className="min-h-full">
       <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">
-        Loading appointments...
+        <DatabaseLoading label="Loading appointments from the database…" className="py-0" />
       </div>
       </div>
     )

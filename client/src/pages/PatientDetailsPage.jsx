@@ -22,6 +22,7 @@ import {
   splitList,
 } from '../lib/patientProfiles'
 import { createProfile, deleteProfilePicture, getAppointments, getProfiles, updateProfile, uploadProfilePicture } from '../lib/recordsApi'
+import DatabaseLoading from '../components/DatabaseLoading'
 
 function formatDate(dateValue) {
   if (!dateValue) return 'Not set'
@@ -265,6 +266,7 @@ export default function PatientDetailsPage({ forceCreate = false }) {
   const { getToken } = useAuth()
   const [profiles, setProfiles] = useState([])
   const [bookings, setBookings] = useState([])
+  const [loadingRecords, setLoadingRecords] = useState(true)
   const [selectedId, setSelectedId] = useState(profileId || '')
   const [mode, setMode] = useState('view')
   const role = user?.publicMetadata?.role || 'member'
@@ -275,13 +277,14 @@ export default function PatientDetailsPage({ forceCreate = false }) {
 
   useEffect(() => {
     if (!isLoaded || !user) return
+    setLoadingRecords(true)
     Promise.all([getProfiles(getToken), getAppointments(getToken)]).then(([visibleProfiles, appointments]) => {
     setProfiles(visibleProfiles)
     setBookings(appointments)
     if (profileId) setSelectedId(profileId)
     if (!profileId && visibleProfiles[0]) setSelectedId(visibleProfiles[0].id)
     if ((forceCreate || searchParams.get('create') === '1') && canCreateProfile) setMode('create')
-    }).catch(console.error)
+    }).catch(console.error).finally(() => setLoadingRecords(false))
   }, [canCreateProfile, forceCreate, getToken, isLoaded, profileId, searchParams, user])
 
   const selectedProfile = profiles.find((profile) => profile.id === selectedId) || null
@@ -367,8 +370,8 @@ export default function PatientDetailsPage({ forceCreate = false }) {
     return updateSavedProfile(savedProfile)
   }
 
-  if (!isLoaded) {
-    return <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">Loading patient details...</div>
+  if (!isLoaded || (user && loadingRecords)) {
+    return <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><DatabaseLoading label="Loading patient details from the database…" className="py-0" /></div>
   }
 
   if (!user) return <Navigate to={`/sign-in?redirect_url=${profileHomePath}`} replace />

@@ -14,6 +14,7 @@ import {
   profileToBookingFields,
 } from '../lib/patientProfiles'
 import { createAppointment, getAppointments, getProfiles, updateAppointment } from '../lib/recordsApi'
+import DatabaseLoading from '../components/DatabaseLoading'
 
 const OPEN_TIME = '08:00'
 const CLOSE_TIME = '17:00'
@@ -118,6 +119,11 @@ function getWorkingTimes(duration) {
   return times
 }
 
+function isPastAppointmentTime(date, time) {
+  if (!date || !time) return false
+  return new Date(`${date}T${time}:00`).getTime() <= Date.now()
+}
+
 function getBusinessDaysForMonth() {
   const today = new Date()
   const maxDate = addMonths(today, 1)
@@ -186,6 +192,10 @@ function validateAppointmentForm(form) {
       'Low emergency level is only for routine visits or non-urgent checkups. If symptoms are worsening, choose Medium or provide more details.'
   }
 
+  if (form.date && form.time && isPastAppointmentTime(form.date, form.time)) {
+    errors.appointmentTime = 'Please choose a future appointment time.'
+  }
+
   return errors
 }
 
@@ -225,6 +235,7 @@ export default function ReservationPage() {
   const [dateError, setDateError] = useState('')
   const [errors, setErrors] = useState({})
   const [profiles, setProfiles] = useState([])
+  const [loadingProfiles, setLoadingProfiles] = useState(true)
   const [showProfileModal, setShowProfileModal] = useState(false)
 
   const businessDays = useMemo(() => getBusinessDaysForMonth(), [])
@@ -238,13 +249,14 @@ export default function ReservationPage() {
   useEffect(() => {
     if (!isLoaded || !user) return
 
+    setLoadingProfiles(true)
     getProfiles(getToken).then((storedProfiles) => {
     setProfiles(storedProfiles)
 
     if (!editId && storedProfiles.length === 0) {
       setShowProfileModal(true)
     }
-    }).catch(console.error)
+    }).catch(console.error).finally(() => setLoadingProfiles(false))
   }, [editId, getToken, isLoaded, user])
 
   useEffect(() => {
@@ -374,11 +386,11 @@ export default function ReservationPage() {
     navigate('/booked')
   }
 
-  if (!isLoaded) {
+  if (!isLoaded || (user && loadingProfiles)) {
     return (
       <div className="min-h-full">
       <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">
-        Loading reservation...
+        <DatabaseLoading label="Loading reservation data from the database…" className="py-0" />
       </div>
       </div>
     )
@@ -685,21 +697,26 @@ export default function ReservationPage() {
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-slate-700">Appointment Time</label>
                 <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
-                  {workingTimes.map((time) => (
+                  {workingTimes.map((time) => {
+                    const unavailable = isPastAppointmentTime(formData.date, time)
+                    return (
                     <button
                       key={time}
                       type="button"
+                      disabled={unavailable}
                       onClick={() => setFormData((prev) => ({ ...prev, time }))}
                       className={`rounded-2xl border p-2 text-center text-sm transition ${
                         formData.time === time
                           ? 'border-sky-500 bg-sky-50 text-sky-700'
-                          : 'border-slate-200 hover:border-sky-300'
+                          : unavailable ? 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300' : 'border-slate-200 hover:border-sky-300'
                       }`}
                     >
                       {time}
                     </button>
-                  ))}
+                    )
+                  })}
                 </div>
+                {formData.date === todayValue && <p className="mt-2 text-xs text-slate-500">Earlier times today are unavailable.</p>}
               </div>
             )}
             {errors.appointmentTime && <p className="lg:col-span-2 text-sm text-red-600">{errors.appointmentTime}</p>}

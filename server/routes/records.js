@@ -45,6 +45,20 @@ const profilePictureBody = express.raw({
   type: (req) => allowedProfilePictureTypes.has(String(req.headers['content-type'] || '').split(';')[0]),
 });
 
+function validateFutureAppointment(date, time) {
+  const appointmentAt = new Date(`${date || ''}T${time || ''}`);
+  if (!date || !time || Number.isNaN(appointmentAt.getTime())) {
+    const error = new Error('A valid appointment date and time are required');
+    error.status = 400;
+    throw error;
+  }
+  if (appointmentAt.getTime() <= Date.now()) {
+    const error = new Error('Appointments must be scheduled for a future time');
+    error.status = 400;
+    throw error;
+  }
+}
+
 function profileValue(body, column) {
   if (column === 'profilePicture') {
     const value = body.profilePicture;
@@ -164,6 +178,7 @@ router.get('/appointments', async (req, res) => {
 router.post('/appointments', async (req, res) => {
   const id = req.body.id;
   if (!id) return res.status(400).json({ error: 'Appointment ID is required' });
+  validateFutureAppointment(req.body.date, req.body.time);
   const values = appointmentColumns.map((column) => req.body[column] ?? null);
   const result = await db.query(`INSERT INTO appointments (id, user_id, ${appointmentDbColumns.join(', ')}) VALUES ($1, $2, ${appointmentColumns.map((_, i) => `$${i + 3}`).join(', ')}) RETURNING *`, [id, req.auth.userId, ...values]);
   res.status(201).json(camelAppointment(result.rows[0]));

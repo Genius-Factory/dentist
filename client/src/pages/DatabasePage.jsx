@@ -4,6 +4,7 @@ import { useAuth, useUser } from '@clerk/clerk-react'
 import { AlertTriangle, Database } from 'lucide-react'
 import { normalizeRole } from '../lib/bookings'
 import logger from '../lib/logger'
+import DatabaseLoading from '../components/DatabaseLoading'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 const HIDDEN_COLUMNS = new Set(['profile_picture'])
@@ -76,7 +77,7 @@ export default function DatabasePage() {
     [tables],
   )
 
-  if (!isLoaded) return <div className="p-6 text-slate-600">Loading DB...</div>
+  if (!isLoaded) return <div className="p-6"><DatabaseLoading label="Loading database access…" className="py-0" /></div>
   if (!user) return <Navigate to="/sign-in?redirect_url=/db" replace />
   if (!['admin', 'superadmin'].includes(normalizeRole(user.publicMetadata?.role))) return <Navigate to="/" replace />
 
@@ -105,7 +106,7 @@ export default function DatabasePage() {
       {testLogStatus && <p className="mt-3 text-sm text-slate-600">{testLogStatus}</p>}
 
       {loading ? (
-        <p className="py-12 text-center">Loading database...</p>
+        <DatabaseLoading label="Loading database records…" />
       ) : error ? (
         <p className="py-12 text-center text-red-600">{error}</p>
       ) : (
