@@ -315,6 +315,8 @@ node scripts/generate-docs.cjs</code></pre></div>
 </section>
 <section class="chapter" aria-labelledby="documentation-maintenance">
 <h2 id="documentation-maintenance"><a class="heading-link" href="#documentation-maintenance">Documentation maintenance</a></h2>
+<h3 id="changelog"><a class="heading-link" href="#changelog">Changelog</a></h3>
+<ul><li>2026-09-11: Added the administrator-only services catalog to the Admin Dashboard. It uses mock data until a services API is introduced and provides search, category/status filters, service details (name, category, duration, price, assigned dentists, and status), plus local add, edit, and activate/deactivate controls. The Admin Dashboard is independently vertically scrollable so the full catalog fits.</li></ul>
 <p>When behavior changes, update the matching workflow, permission, API, configuration, and schema sections together. Pay particular attention to the distinction between UI controls and server checks. Update dependency ranges from the package manifests when necessary.</p>
 <p>The documentation generator only reads its Markdown and presentation assets. It does not inspect <code>.env</code> files, export patient data, query the database, invoke Clerk, or start the application. No live account or patient data is embedded in the generated HTML.</p>
 </section></article><div id="no-results" hidden><h2>No matching chapters</h2><p>Try a different term or clear the search field.</p><button id="clear-search" type="button">Clear search</button></div><footer class="document-footer">Maintained in docs/application.md · Generated with scripts/generate-docs.cjs<a href="#top">Back to top ↑</a></footer></main></div>
