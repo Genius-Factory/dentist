@@ -625,6 +625,10 @@ This section records behavior visible in the repository so maintainers can disti
 
 ## Documentation maintenance
 
+### Changelog
+
+- 2026-09-11: Added the administrator-only services catalog to the Admin Dashboard. It uses mock data until a services API is introduced and provides search, category/status filters, service details (name, category, duration, price, assigned dentists, and status), plus local add, edit, and activate/deactivate controls. The Admin Dashboard is independently vertically scrollable so the full catalog fits.
+
 When behavior changes, update the matching workflow, permission, API, configuration, and schema sections together. Pay particular attention to the distinction between UI controls and server checks. Update dependency ranges from the package manifests when necessary.
 
 The documentation generator only reads its Markdown and presentation assets. It does not inspect `.env` files, export patient data, query the database, invoke Clerk, or start the application. No live account or patient data is embedded in the generated HTML.
