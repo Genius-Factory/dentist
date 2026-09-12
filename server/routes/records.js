@@ -7,6 +7,8 @@ const profileColumns = ['firstName', 'lastName', 'dateOfBirth', 'gender', 'phone
 const profileDbColumns = ['first_name', 'last_name', 'date_of_birth', 'gender', 'phone', 'email', 'address', 'profile_picture', 'profile_picture_type', 'guardian_name', 'guardian_relationship', 'guardian_phone', 'emergency_contact_name', 'emergency_contact_relationship', 'emergency_contact_phone', 'allergies', 'notes', 'preferred_contact_method', 'communication_preference', 'language'];
 const appointmentColumns = ['profileId', 'name', 'dateOfBirth', 'guardianContact', 'medicalIssue', 'emergencyLevel', 'duration', 'date', 'time', 'status', 'requestedByRole', 'editableUntil', 'approvedAt', 'approvedBy', 'declinedAt', 'declinedBy'];
 const appointmentDbColumns = ['profile_id', 'name', 'date_of_birth', 'guardian_contact', 'medical_issue', 'emergency_level', 'duration', 'appointment_date', 'appointment_time', 'status', 'requested_by_role', 'editable_until', 'approved_at', 'approved_by', 'declined_at', 'declined_by'];
+const appointmentStatuses = new Set(['pending', 'approved', 'declined', 'archived']);
+const appointmentEditWindowMs = 24 * 60 * 60 * 1000;
 
 const dateOnly = (value) => value ? (value instanceof Date ? value.toISOString() : String(value)).slice(0, 10) : '';
 const camelProfile = (row) => ({
@@ -57,6 +59,60 @@ function validateFutureAppointment(date, time) {
     error.status = 400;
     throw error;
   }
+}
+
+function appointmentLocked(appointment) {
+  if (appointment.status === 'approved') return true;
+  const editableUntil = new Date(appointment.editable_until).getTime();
+  return !Number.isFinite(editableUntil) || editableUntil <= Date.now();
+}
+
+function appointmentError(status, message) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
+
+async function requireUsableProfile(req, profileId) {
+  if (!profileId) return;
+  const profile = await db.query('SELECT user_id FROM patient_profiles WHERE id = $1', [profileId]);
+  if (!profile.rowCount) throw appointmentError(404, 'Profile not found');
+  if (!ownOrStaff(req, profile.rows[0].user_id)) {
+    throw appointmentError(403, 'You cannot use another patient\'s profile');
+  }
+}
+
+function appointmentValues(body, existing, req) {
+  const isStaff = canManageAll(req);
+  const bodyStatus = body.status || (existing ? existing.status : 'pending');
+  if (!appointmentStatuses.has(bodyStatus)) throw appointmentError(400, 'Invalid appointment status');
+
+  if (!isStaff && body.status && body.status !== (existing ? existing.status : 'pending')) {
+    throw appointmentError(403, 'Only staff can change appointment status');
+  }
+
+  const values = appointmentColumns.map((column) => body[column] ?? (existing ? existing[appointmentDbColumns[appointmentColumns.indexOf(column)]] : null));
+  const index = (column) => appointmentColumns.indexOf(column);
+
+  // Workflow metadata is authoritative server state. A member may create and
+  // edit a pending request, but can never turn it into an approved request.
+  if (!isStaff) {
+    values[index('status')] = existing ? existing.status : 'pending';
+    values[index('requestedByRole')] = existing ? existing.requested_by_role : req.userRole;
+    values[index('editableUntil')] = existing ? existing.editable_until : new Date(Date.now() + appointmentEditWindowMs).toISOString();
+    values[index('approvedAt')] = existing ? existing.approved_at : null;
+    values[index('approvedBy')] = existing ? existing.approved_by : null;
+    values[index('declinedAt')] = existing ? existing.declined_at : null;
+    values[index('declinedBy')] = existing ? existing.declined_by : null;
+  } else if (bodyStatus === 'approved' && (!existing || existing.status !== 'approved')) {
+    values[index('approvedAt')] = new Date().toISOString();
+    values[index('approvedBy')] = req.auth.userId;
+  } else if (bodyStatus === 'declined' && (!existing || existing.status !== 'declined')) {
+    values[index('declinedAt')] = new Date().toISOString();
+    values[index('declinedBy')] = req.auth.userId;
+  }
+
+  return values;
 }
 
 function profileValue(body, column) {
@@ -179,22 +235,31 @@ router.post('/appointments', async (req, res) => {
   const id = req.body.id;
   if (!id) return res.status(400).json({ error: 'Appointment ID is required' });
   validateFutureAppointment(req.body.date, req.body.time);
-  const values = appointmentColumns.map((column) => req.body[column] ?? null);
+  await requireUsableProfile(req, req.body.profileId);
+  const values = appointmentValues(req.body, null, req);
   const result = await db.query(`INSERT INTO appointments (id, user_id, ${appointmentDbColumns.join(', ')}) VALUES ($1, $2, ${appointmentColumns.map((_, i) => `$${i + 3}`).join(', ')}) RETURNING *`, [id, req.auth.userId, ...values]);
   res.status(201).json(camelAppointment(result.rows[0]));
 });
 router.put('/appointments/:id', async (req, res) => {
-  const existing = await db.query('SELECT user_id FROM appointments WHERE id = $1', [req.params.id]);
+  const existing = await db.query('SELECT * FROM appointments WHERE id = $1', [req.params.id]);
   if (!existing.rowCount) return res.status(404).json({ error: 'Appointment not found' });
   if (!ownOrStaff(req, existing.rows[0].user_id)) return res.status(403).json({ error: 'Insufficient permissions' });
-  const values = appointmentColumns.map((column) => req.body[column] ?? null);
+  if (appointmentLocked(existing.rows[0])) return res.status(403).json({ error: 'Approved or expired appointments cannot be edited' });
+  const date = req.body.date ?? dateOnly(existing.rows[0].appointment_date);
+  const time = req.body.time ?? String(existing.rows[0].appointment_time).slice(0, 5);
+  validateFutureAppointment(date, time);
+  await requireUsableProfile(req, req.body.profileId ?? existing.rows[0].profile_id);
+  const values = appointmentValues(req.body, existing.rows[0], req);
   const assignments = appointmentDbColumns.map((column, i) => `${column} = $${i + 1}`).join(', ');
   const result = await db.query(`UPDATE appointments SET ${assignments}, updated_at = NOW() WHERE id = $${values.length + 1} RETURNING *`, [...values, req.params.id]);
   res.json(camelAppointment(result.rows[0]));
 });
 router.delete('/appointments/:id', async (req, res) => {
-  const result = await db.query('DELETE FROM appointments WHERE id = $1 AND (user_id = $2 OR $3 = true) RETURNING id', [req.params.id, req.auth.userId, canManageAll(req)]);
-  if (!result.rowCount) return res.status(404).json({ error: 'Appointment not found' });
+  const existing = await db.query('SELECT * FROM appointments WHERE id = $1', [req.params.id]);
+  if (!existing.rowCount) return res.status(404).json({ error: 'Appointment not found' });
+  if (!ownOrStaff(req, existing.rows[0].user_id)) return res.status(403).json({ error: 'Insufficient permissions' });
+  if (appointmentLocked(existing.rows[0])) return res.status(403).json({ error: 'Approved or expired appointments cannot be deleted' });
+  const result = await db.query('DELETE FROM appointments WHERE id = $1 RETURNING id', [req.params.id]);
   res.json({ success: true });
 });
 
