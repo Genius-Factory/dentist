@@ -8,7 +8,7 @@ import {
   isArchivedBooking,
   isBookingEditable,
 } from '../lib/bookings'
-import { deleteAppointment, getAppointments } from '../lib/recordsApi'
+import { deleteAppointment, getAppointments, getServices } from '../lib/recordsApi'
 import DatabaseLoading from '../components/DatabaseLoading'
 
 function formatCountdown(editableUntil) {
@@ -30,6 +30,7 @@ export default function BookedPage() {
   const { user, isLoaded } = useUser()
   const { getToken } = useAuth()
   const [bookings, setBookings] = useState([])
+  const [servicesById, setServicesById] = useState({})
   const [now, setNow] = useState(Date.now())
   const [showArchived, setShowArchived] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -42,7 +43,14 @@ export default function BookedPage() {
   useEffect(() => {
     if (!isLoaded || !user) return
     setLoading(true)
-    getAppointments(getToken).then((items) => setBookings(items.filter((booking) => booking.userId === user.id))).catch(console.error).finally(() => setLoading(false))
+    Promise.allSettled([getAppointments(getToken), getServices(getToken)])
+      .then(([appointmentsResult, servicesResult]) => {
+        if (appointmentsResult.status === 'fulfilled') setBookings(appointmentsResult.value.filter((booking) => booking.userId === user.id))
+        else console.error(appointmentsResult.reason)
+        if (servicesResult.status === 'fulfilled') setServicesById(Object.fromEntries(servicesResult.value.map((service) => [service.id, service.name])))
+        else console.error(servicesResult.reason)
+      })
+      .finally(() => setLoading(false))
   }, [getToken, isLoaded, user])
 
   const cancelBooking = async (id) => {
@@ -142,7 +150,7 @@ export default function BookedPage() {
                       <h2 className="text-base font-semibold text-slate-900">{booking.name}</h2>
                       <p className="text-sm text-slate-500">{booking.date}</p>
                     </div>
-                    <p className="mt-1 truncate text-sm text-slate-600">{booking.medicalIssue}</p>
+                    <p className="mt-1 truncate text-sm text-slate-600"><span className="font-medium text-slate-700">Service:</span> {serviceLabel(booking, servicesById)}</p>
                   </div>
                   <span className={`w-fit rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClasses(status)}`}>
                     {getStatusLabel(status)}
@@ -172,7 +180,7 @@ export default function BookedPage() {
                       <p><span className="font-medium text-slate-700">Date:</span> {booking.date}</p>
                       <p><span className="font-medium text-slate-700">Time:</span> {booking.time}</p>
                       <p><span className="font-medium text-slate-700">Duration:</span> {booking.duration} minutes</p>
-                      <p><span className="font-medium text-slate-700">Issue:</span> {booking.medicalIssue}</p>
+                      <p><span className="font-medium text-slate-700">Service:</span> {serviceLabel(booking, servicesById)}</p>
                     </div>
                   </div>
 
@@ -226,4 +234,8 @@ export default function BookedPage() {
     </div>
     </div>
   )
+}
+
+function serviceLabel(booking, servicesById) {
+  return booking.serviceName || servicesById[booking.serviceId || booking.service_id] || 'Service unavailable'
 }

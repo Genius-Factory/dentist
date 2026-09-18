@@ -50,9 +50,34 @@ CREATE TABLE IF NOT EXISTS appointments (
   created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
 );
 
+-- The bookable service catalog. Only active services are exposed to patients.
+CREATE TABLE IF NOT EXISTS services (
+  id VARCHAR(255) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  category VARCHAR(255) NOT NULL DEFAULT 'General Dentistry',
+  description TEXT NOT NULL DEFAULT '',
+  duration INTEGER NOT NULL CHECK (duration > 0),
+  price NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (price >= 0),
+  status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+  created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- A service can be provided by many dentists and a dentist can provide many services.
+CREATE TABLE IF NOT EXISTS service_dentists (
+  service_id VARCHAR(255) NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  dentist_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (service_id, dentist_id)
+);
+
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS service_id VARCHAR(255) REFERENCES services(id) ON DELETE SET NULL;
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS dentist_id VARCHAR(255) REFERENCES users(id) ON DELETE SET NULL;
+
 CREATE INDEX IF NOT EXISTS patient_profiles_user_id_idx ON patient_profiles(user_id);
 CREATE INDEX IF NOT EXISTS appointments_user_id_idx ON appointments(user_id);
 CREATE INDEX IF NOT EXISTS appointments_profile_id_idx ON appointments(profile_id);
+CREATE INDEX IF NOT EXISTS appointments_service_id_idx ON appointments(service_id);
+CREATE INDEX IF NOT EXISTS appointments_dentist_id_idx ON appointments(dentist_id);
+CREATE INDEX IF NOT EXISTS service_dentists_dentist_id_idx ON service_dentists(dentist_id);
 
 -- Appointment edit deadlines are absolute instants. Older installations used
 -- TIMESTAMP without a timezone, which caused clients outside UTC to lose hours.
