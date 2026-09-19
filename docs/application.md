@@ -4,18 +4,18 @@ This handbook describes the application implemented in this repository. It is in
 
 ## Application overview
 
-The application lets signed-in users maintain patient profiles and request dental appointments. Clinic staff review requests, and administrators manage application user records and inspect stored data. Patient profiles and appointments are stored in PostgreSQL; Clerk provides identity and session authentication.
+The application lets signed-in users maintain patient profiles and request dental appointments. Clinic staff review requests, while administrators manage users, a database-backed service catalog, and dentist-to-service assignments. Patient profiles, services, assignments, and appointments are stored in PostgreSQL; Clerk provides identity and session authentication.
 
 | Area | Implemented behavior |
 | --- | --- |
 | Patient profiles | Personal details, contact information, guardians, emergency contacts, allergies, notes, preferences, and profile photos |
-| Reservations | Profile selection, reason for visit, urgency, duration, weekday time selection, review, and submission |
+| Reservations | Five-step service, dentist, date/time, patient-detail, and confirmation flow |
 | Appointment tracking | Pending and approved requests, a pending edit countdown, cancellation, and archive views |
 | Staff approvals | Review all requests and approve or decline appointments |
-| Administration | Dashboard, username and role changes, application user deletion, and database table viewing |
+| Administration | Dashboard, services and dentist assignments, username/role changes, user deletion, and database table viewing |
 | Observability | Database health endpoint, structured server logs, browser error collection, and an HTML log viewer |
 
-There are no implemented treatment-plan, invoice, payment, AI-summary, dentist-availability, or notification-delivery APIs. The OpenAI and AWS S3 packages are declared dependencies but have no application integration in the inspected source. Displayed reservation prices are informational; no payment is collected. Photos are stored in PostgreSQL, not S3.
+There are no implemented treatment-plan, invoice, payment, AI-summary, live dentist-availability, or notification-delivery APIs. Prices are informational; no payment is collected. Photos are stored in PostgreSQL, not S3.
 
 ## Read and regenerate this handbook
 
@@ -235,7 +235,7 @@ The role hierarchy is `member < secretary < admin < superadmin`. The backend tri
 | Edit Details control | Own | Hidden | Hidden | Hidden |
 | Approval screen | No | Yes | Yes | Yes |
 | New reservation status | Pending | Approved | Approved | Approved |
-| Dashboard, users, database inspector | No | No | Yes | Yes |
+| Dashboard, services, users, database inspector | No | No | Yes | Yes |
 | Manage another user's role/record | No | No | Lower ranks only | Lower ranks only |
 
 ### Backend enforcement
@@ -244,7 +244,7 @@ Every authenticated user can create a profile or appointment. The server sets `u
 
 Members can list, update, or delete only their own applicable records; secretary/admin/superadmin can manage all profiles and appointments. The secretary's hidden create-profile control and the staff-hidden Edit Details control are interface restrictions, not API permission restrictions. There is no profile-deletion API.
 
-Only admin and superadmin can list users or view the database inspector API. Administrators can manage another user only if their rank is strictly higher, and can assign only a lower-ranked role. Equal-rank accounts cannot manage one another. An administrator may update their own username while retaining their role; nobody can delete their own local record, and a superadmin cannot demote themselves.
+Only admin and superadmin can manage services, assign staff users to those services, list users, or view the database inspector API. A service may be active or inactive; inactive services are hidden from patient booking and rejected by the appointment API. Administrators can manage another user only if their rank is strictly higher, and can assign only a lower-ranked role. Equal-rank accounts cannot manage one another.
 
 Deleting a user removes the application database row and cascades to that user's profiles and appointments. It does not delete the Clerk identity or revoke sign-in. A later protected request can recreate the user row, but does not restore deleted patient data.
 
@@ -280,20 +280,20 @@ The patient detail screen links the profile to appointment history. It first mat
 
 ### Request an appointment
 
-1. Sign in and create or select a saved patient profile.
-2. Open Book Appointment and select that profile.
-3. Enter the reason for the visit and select low, medium, or high urgency.
-4. Choose a duration, weekday date, and offered future time.
-5. Review the entered information and submit.
+1. Select an active service card, which displays its name, duration, price, and Select action. A zero-price service is displayed as **Free**.
+2. Select a dentist assigned to that service.
+3. Choose a future weekday date and an offered time.
+4. Select a saved patient profile and enter the reason for the visit. The booking form has no urgency selector.
+5. Review the preserved selections and confirm the appointment.
 6. Open Booked Appointments to follow the request.
 
-The interface offers 30 minutes for a displayed $10 or 60 minutes for a displayed $20. Available choices cover weekdays from today through one month ahead, with starts in 30-minute increments between 08:00 and 17:00, ending by closing time. There is no dentist selector or occupied-slot conflict check.
+The service catalog is loaded from `/api/services`. The booking page shows only active services and assigned dentists. The server checks again at create/update time that the selected service remains active and that the selected dentist is assigned to it; clients cannot book an inactive service by altering a request. Available choices use 30-minute increments from 08:00 through 16:30 on weekdays. There is no occupied-slot conflict check or live availability calendar.
 
-The reservation form expects a multi-part name using Latin letters, spaces, apostrophes, or hyphens; a derived age between 1 and 120; and guardian contact for a minor. It requires a reason of at least 10 characters with at least six Latin letters and rejects certain placeholder strings. English keyword matching can reject low urgency for listed symptoms or display an urgent-care notice. This is static form logic, not an AI service or clinical assessment system.
+The reservation form requires a selected profile and a reason of at least 10 characters. It uses the selected service's duration rather than a client-selected duration. New bookings retain the legacy low urgency value internally for API compatibility, but it is not exposed as a booking choice. This is static form logic, not an AI service or clinical assessment system.
 
 ### Pending, approval, and archives
 
-Member submissions are marked pending by the client and receive an edit deadline 24 hours after creation. Editing retains the original deadline. The member UI enables editing and cancellation only while the request is pending and that deadline is in the future. Cancellation deletes the appointment record rather than setting a canceled status.
+Member submissions are marked pending by the client and receive an edit deadline 24 hours after creation. Editing retains the original deadline. The member UI enables editing and cancellation only while the request is pending and that deadline is in the future. Booked and archived appointment cards show the linked service name instead of the private reason-for-visit text. The page uses the appointment response's `serviceName` and falls back to the active services catalog when needed. Cancellation deletes the appointment record rather than setting a canceled status.
 
 Staff submissions are immediately marked approved by the client. The staff approval page lists requests, links patient details, and allows approval or decline. It records actor IDs and timestamps in the update payload.
 
@@ -303,9 +303,9 @@ Declined entries, explicit archived entries, and approved appointments whose sta
 
 ### Administrator workflow
 
-Open the dashboard for today's appointments, total patient profiles, staff-role user count, pending requests, recent patients, and common reason-for-visit strings. Search filters today's appointments. The displayed staff count represents roles, not live presence. Popular Services groups free-text medicalIssue values; Add Service opens the reservation page.
+Open the dashboard for today's appointments, total patient profiles, staff-role user count, pending requests, recent patients, and common reason-for-visit strings. The embedded Services section loads the backend catalog, supports loading/empty/error states, and lets admins and superadmins add, edit, activate/deactivate services, and assign staff dentists. Service cards use a vertically centered, title-cased `Status: Active`/`Status: Inactive` badge. The save action is locked while its request is in flight, preventing duplicate services from repeated clicks.
 
-The notifications badge, operational-status message, seven dentists on duty, and 18-minute wait estimate are hardcoded presentation content. Dashboard dates use a UTC date string for today's grouping. Its appointment table renders pending as Pending and other statuses as Confirmed; use the approval page for the underlying status.
+The dashboard top bar intentionally has no user or notification icon. The operational-status message, seven dentists on duty, and 18-minute wait estimate are hardcoded presentation content. Dashboard dates use a UTC date string for today's grouping.
 
 Open Users to search by username, email, or role. Edit changes the Clerk username, Clerk metadata, and local user row. These operations are sequential across services and are not a distributed transaction. Delete has the cascading behavior described in Roles and permissions.
 
@@ -328,6 +328,10 @@ The server generates or echoes `X-Request-Id` on responses. Centralized failures
 | GET | /api/users | Admin/superadmin | 200: all local users, newest first |
 | PUT | /api/users/:userId | Admin/superadmin plus hierarchy | 200: updated local user |
 | DELETE | /api/users/:userId | Admin/superadmin plus hierarchy | 200: success and removed ID |
+| GET | /api/services | Authenticated | Active service array for patients; all services for admins/superadmins |
+| GET | /api/services/dentists | Admin/superadmin | 200: assignable staff users |
+| POST | /api/services | Admin/superadmin | 201: created service with dentist assignments |
+| PUT | /api/services/:id | Admin/superadmin | 200: updated service with dentist assignments |
 | GET | /api/records/profiles | Own records or staff | 200: profile array, newest first |
 | POST | /api/records/profiles | Authenticated | 201: created profile |
 | PUT | /api/records/profiles/:id | Owner or staff | 200: updated profile |
@@ -401,7 +405,7 @@ Create requires `id` and a valid future `date`/`time`, plus the database's non-n
 
 The client normally sets editableUntil to creation time plus 24 hours. The server currently accepts the supplied deadline and status/actor metadata. A linked profile must exist due to its foreign key, but the API does not verify that the caller owns that profile when creating or updating an appointment.
 
-Appointment responses contain the original snake_case database fields plus camelCase aliases. Use `date` (YYYY-MM-DD), `time` (HH:mm), `userId`, `profileId`, `medicalIssue`, `emergencyLevel`, and the camelCase audit fields in client code. Unlike profile responses, appointment responses are not exclusively camelCase.
+Appointment responses contain the original snake_case database fields plus camelCase aliases. Collection responses also include `serviceName` from the linked service. Use `date` (YYYY-MM-DD), `time` (HH:mm), `userId`, `profileId`, `serviceId`, `serviceName`, `medicalIssue`, and the camelCase audit fields in client code. Unlike profile responses, appointment responses are not exclusively camelCase.
 
 ### User update and logging payloads
 
@@ -447,6 +451,10 @@ The schema uses string primary keys. Users use Clerk IDs; the client generates p
 users.id --< patient_profiles.user_id  (delete user: cascade)
 users.id --< appointments.user_id      (delete user: cascade)
 patient_profiles.id --< appointments.profile_id (delete profile: set null)
+services.id --< service_dentists.service_id (delete service: cascade)
+users.id --< service_dentists.dentist_id (delete user: cascade)
+services.id --< appointments.service_id (delete service: set null)
+users.id --< appointments.dentist_id (delete user: set null)
 ```
 
 ### users
@@ -491,6 +499,8 @@ There is an index on user_id. No uniqueness rule limits a user to one profile. A
 | id | VARCHAR(255), primary key |
 | user_id | VARCHAR(255), required users foreign key |
 | profile_id | VARCHAR(255), nullable patient_profiles foreign key |
+| service_id | VARCHAR(255), nullable services foreign key |
+| dentist_id | VARCHAR(255), nullable users foreign key |
 | name | VARCHAR(255), not null |
 | date_of_birth | DATE |
 | guardian_contact | TEXT |
@@ -505,7 +515,11 @@ There is an index on user_id. No uniqueness rule limits a user to one profile. A
 | approved_by, declined_by | VARCHAR(255), no foreign keys |
 | created_at, updated_at | TIMESTAMP, default NOW() |
 
-Indexes cover user_id and profile_id. There is no unique appointment-slot index or exclusion constraint to prevent overlap. There are no SQL checks restricting status, urgency, or positive/supported durations.
+Indexes cover user_id, profile_id, service_id, and dentist_id. There is no unique appointment-slot index or exclusion constraint to prevent overlap. The API enforces an active service/dentist assignment and derives duration from the service.
+
+### services and service_dentists
+
+`services` stores an ID, name, category, description, positive duration, non-negative numeric price, active/inactive status, and timestamps. `service_dentists` is the many-to-many relation between a service and staff user. It uses a composite primary key of `service_id, dentist_id`. The services route limits dentist assignments to local users whose role is secretary, admin, or superadmin.
 
 ### Dates and schema changes
 
@@ -627,7 +641,9 @@ This section records behavior visible in the repository so maintainers can disti
 
 ### Changelog
 
-- 2026-09-11: Added the administrator-only services catalog to the Admin Dashboard. It uses mock data until a services API is introduced and provides search, category/status filters, service details (name, category, duration, price, assigned dentists, and status), plus local add, edit, and activate/deactivate controls. The Admin Dashboard is independently vertically scrollable so the full catalog fits.
+- 2026-09-18: Replaced the mock services catalog with a PostgreSQL-backed API, service-to-dentist assignments, active/inactive enforcement, and a five-step booking flow. Free services display “Free”; the dashboard top bar no longer includes user or notification icons.
+- 2026-09-18: Removed booking urgency selection, exposed linked service names on booked appointment cards instead of issue text, improved service status badges, and prevented repeated service-save submissions.
+- 2026-09-18: Added a booked-appointment service-name fallback using the active services catalog, preventing a false “Service unavailable” label when the linked service is available.
 
 When behavior changes, update the matching workflow, permission, API, configuration, and schema sections together. Pay particular attention to the distinction between UI controls and server checks. Update dependency ranges from the package manifests when necessary.
 

@@ -1,9 +1,9 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { useAuth, useUser, UserButton } from '@clerk/clerk-react'
+import { useAuth, useUser } from '@clerk/clerk-react'
 import {
-  Bell, CalendarDays, CalendarPlus, ChevronRight, ClipboardList,
+  CalendarDays, CalendarPlus, ChevronRight, ClipboardList,
   Clock3, LoaderCircle, MoreHorizontal, Search, Stethoscope, SmilePlus, UserPlus, Users, X,
 } from 'lucide-react'
 import { getAppointments, getProfiles, getUsers } from '../lib/recordsApi'
@@ -71,7 +71,6 @@ export default function AdminDashboardPage() {
   return <div className="h-[calc(100dvh-4rem)] overflow-y-auto bg-[#f8faff] text-slate-900 md:h-dvh">
       <header className="sticky top-0 z-30 flex h-[78px] items-center gap-4 border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-7">
         <label className="relative hidden max-w-[480px] flex-1 md:block"><Search size={19} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search today's appointments" className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm outline-none focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100" /></label>
-        <div className="ml-auto flex items-center gap-4"><button className="relative rounded-full p-2 text-slate-500 hover:bg-slate-100" aria-label="Notifications"><Bell size={22} /><span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">3</span></button><div className="hidden text-right sm:block"><p className="text-sm font-semibold">{user.fullName || user.username || 'Admin User'}</p><p className="text-xs capitalize text-slate-500">{role}</p></div><UserButton afterSignOutUrl="/" /></div>
       </header>
       <main className="mx-auto max-w-[1500px] p-4 sm:p-7">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Admin Dashboard</h1><p className="mt-1 text-sm text-slate-500">Manage appointments, patients, and clinic activity.</p></div><p className="text-xs font-medium text-slate-400">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p></div>
