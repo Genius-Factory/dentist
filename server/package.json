@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "migrate:billing": "node db/migrate-billing.js",
+    "test:billing": "node tests/billing.test.js",
     "dev": "nodemon index.js",
     "start": "node index.js",
     "init-db": "node db/init-db.js",

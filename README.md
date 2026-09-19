@@ -26,6 +26,7 @@ Follow the handbook's environment, PostgreSQL, and Clerk setup instructions firs
 
 ```powershell
 npm --prefix server install
+npm --prefix server run migrate:billing
 npm --prefix server run dev
 ```
 
@@ -35,3 +36,5 @@ npm --prefix client run dev
 ```
 
 The frontend normally runs at `http://localhost:5173`; the backend defaults to `http://localhost:4000`.
+
+The billing migration is additive and safe to repeat on existing databases. See [revenue and payment tracking](docs/billing.md) for staff workflows, reporting definitions, API details, and integration tests.

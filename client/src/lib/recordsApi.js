@@ -48,3 +48,8 @@ export const updateService = (getToken, service) => request(getToken, `/api/serv
 export const createAppointment = (getToken, appointment) => request(getToken, '/api/records/appointments', { method: 'POST', body: JSON.stringify(appointment) })
 export const updateAppointment = (getToken, appointment) => request(getToken, `/api/records/appointments/${appointment.id}`, { method: 'PUT', body: JSON.stringify(appointment) })
 export const deleteAppointment = (getToken, id) => request(getToken, `/api/records/appointments/${id}`, { method: 'DELETE' })
+export const getRevenue = (getToken, startDate, endDate) => request(getToken, `/api/billing/revenue?${new URLSearchParams({ startDate, endDate })}`)
+export const getBilling = (getToken, id) => request(getToken, `/api/billing/appointments/${encodeURIComponent(id)}`)
+export const confirmCharge = (getToken, id, body) => request(getToken, `/api/billing/appointments/${encodeURIComponent(id)}/charge`, { method: 'POST', body: JSON.stringify({ ...body, timezoneOffset: new Date().getTimezoneOffset() }) })
+export const recordPayment = (getToken, id, body) => request(getToken, `/api/billing/appointments/${encodeURIComponent(id)}/payments`, { method: 'POST', body: JSON.stringify({ ...body, timezoneOffset: new Date().getTimezoneOffset() }) })
+export const voidPayment = (getToken, id, paymentId, reason) => request(getToken, `/api/billing/appointments/${encodeURIComponent(id)}/payments/${paymentId}/void`, { method: 'POST', body: JSON.stringify({ reason }) })

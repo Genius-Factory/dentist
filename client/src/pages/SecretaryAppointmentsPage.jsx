@@ -11,6 +11,7 @@ import {
 import { findProfileForBooking } from '../lib/patientProfiles'
 import { getAppointments, getProfiles, updateAppointment } from '../lib/recordsApi'
 import DatabaseLoading from '../components/DatabaseLoading'
+import PaymentManager from '../components/PaymentManager'
 
 function sortByAppointmentDate(bookings) {
   return [...bookings].sort((a, b) => {
@@ -181,6 +182,7 @@ export default function SecretaryAppointmentsPage() {
                     </div>
                     <p className="mt-1 truncate text-sm text-slate-600">{booking.medicalIssue}</p>
                   </div>
+                  <PaymentManager appointment={booking} />
                   <span className={`w-fit rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClasses(status)}`}>
                     {getStatusLabel(status)}
                   </span>
@@ -222,6 +224,7 @@ export default function SecretaryAppointmentsPage() {
                   </div>
 
                   <div className="flex min-w-56 flex-wrap gap-2 lg:justify-end">
+                    <PaymentManager appointment={booking} />
                     {profile && (
                       <Link
                         to={`/patients/${profile.id}`}

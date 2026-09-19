@@ -10,7 +10,7 @@ async function main() {
     process.exit(1);
   }
 
-  const sql = fs.readFileSync(sqlPath, 'utf8');
+  const sql = fs.readFileSync(sqlPath, 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, 'billing.sql'), 'utf8');
 
   const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 

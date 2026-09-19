@@ -272,8 +272,17 @@ router.delete('/appointments/:id', async (req, res) => {
   const existing = await db.query('SELECT * FROM appointments WHERE id = $1', [req.params.id]);
   if (!existing.rowCount) return res.status(404).json({ error: 'Appointment not found' });
   if (!ownOrStaff(req, existing.rows[0].user_id)) return res.status(403).json({ error: 'Insufficient permissions' });
+  const billing = await db.query('SELECT appointment_id FROM appointment_charges WHERE appointment_id=$1', [req.params.id]);
+  if (billing.rowCount) return res.status(409).json({ error: 'Appointments with billing history cannot be deleted' });
   if (appointmentLocked(existing.rows[0])) return res.status(403).json({ error: 'Approved or expired appointments cannot be deleted' });
-  const result = await db.query('DELETE FROM appointments WHERE id = $1 RETURNING id', [req.params.id]);
+  try {
+    await db.query('DELETE FROM appointments WHERE id = $1 RETURNING id', [req.params.id]);
+  } catch (error) {
+    if (['23503', '23001'].includes(error.code) && error.constraint === 'appointment_charges_appointment_id_fkey') {
+      return res.status(409).json({ error: 'Appointments with billing history cannot be deleted' });
+    }
+    throw error;
+  }
   res.json({ success: true });
 });
 
