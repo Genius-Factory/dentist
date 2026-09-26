@@ -269,10 +269,10 @@ export default function PatientDetailsPage({ forceCreate = false }) {
   const [loadingRecords, setLoadingRecords] = useState(true)
   const [selectedId, setSelectedId] = useState(profileId || '')
   const [mode, setMode] = useState('view')
-  const role = user?.publicMetadata?.role || 'member'
+  const role = user?.publicMetadata?.role || 'client'
   const normalizedRole = normalizeRole(role)
   const isStaff = isStaffRole(role)
-  const canCreateProfile = ['member', 'admin', 'superadmin'].includes(normalizedRole)
+  const canCreateProfile = ['client', 'admin', 'superadmin'].includes(normalizedRole)
   const profileHomePath = isStaff ? '/patients' : '/my-profile'
 
   useEffect(() => {
@@ -389,7 +389,7 @@ export default function PatientDetailsPage({ forceCreate = false }) {
     return (
       <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
         <h1 className="text-2xl font-semibold text-slate-900">{canCreateProfile ? 'Create your first patient profile' : 'No patient profiles yet'}</h1>
-        <p className="mt-2 text-slate-600">{canCreateProfile ? 'Save details once, then reuse the profile while booking appointments.' : 'Profiles will appear here after members or admins create them.'}</p>
+        <p className="mt-2 text-slate-600">{canCreateProfile ? 'Save details once, then reuse the profile while booking appointments.' : 'Profiles will appear here after clients or admins create them.'}</p>
         {canCreateProfile && <button onClick={() => setMode('create')} className="mt-6 rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">Create Profile</button>}
       </div>
     )

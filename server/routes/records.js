@@ -61,6 +61,39 @@ function validateFutureAppointment(date, time) {
   }
 }
 
+const defaultClinicSettings = { workingDays: [1, 2, 3, 4, 5], openingTime: '08:00', closingTime: '17:00', daysOff: [] };
+function camelSettings(row) {
+  if (!row) return defaultClinicSettings;
+  return { workingDays: row.working_days || defaultClinicSettings.workingDays, openingTime: String(row.opening_time).slice(0, 5), closingTime: String(row.closing_time).slice(0, 5), daysOff: row.days_off || [] };
+}
+async function getClinicSettings() {
+  const result = await db.query('SELECT working_days, opening_time, closing_time, days_off FROM clinic_settings WHERE id = 1');
+  return camelSettings(result.rows[0]);
+}
+function minutes(value) { const [hour, minute] = String(value || '').slice(0, 5).split(':').map(Number); return hour * 60 + minute; }
+function isClinicOpen(date, time, duration, settings) {
+  const day = new Date(`${date}T00:00:00`).getDay();
+  if (!settings.workingDays.includes(day)) return 'The clinic is closed on this day';
+  if (settings.daysOff.includes(date)) return 'The clinic is closed on this date';
+  const start = minutes(time); const end = start + Number(duration);
+  if (start < minutes(settings.openingTime) || end > minutes(settings.closingTime)) return `Appointments must fit within clinic hours (${settings.openingTime}–${settings.closingTime})`;
+  return '';
+}
+async function ensureAppointmentAvailable({ date, time, duration, dentistId, excludeId }) {
+  const settings = await getClinicSettings();
+  const closedMessage = isClinicOpen(date, time, duration, settings);
+  if (closedMessage) throw appointmentError(400, closedMessage);
+  const result = await db.query(
+    `SELECT id FROM appointments
+     WHERE dentist_id = $1 AND appointment_date = $2 AND status IN ('pending', 'approved')
+       AND ($3::time < appointment_time + (duration || ' minutes')::interval)
+       AND ($3::time + ($4 || ' minutes')::interval > appointment_time)
+       AND ($5::varchar IS NULL OR id <> $5) LIMIT 1`,
+    [dentistId, date, time, Number(duration), excludeId || null]
+  );
+  if (result.rowCount) throw appointmentError(409, 'That dentist is no longer available at this time. Please choose another time.');
+}
+
 function appointmentLocked(appointment) {
   if (appointment.status === 'approved') return true;
   const editableUntil = new Date(appointment.editable_until).getTime();
@@ -105,7 +138,7 @@ function appointmentValues(body, existing, req) {
   const values = appointmentColumns.map((column) => body[column] ?? (existing ? existing[appointmentDbColumns[appointmentColumns.indexOf(column)]] : null));
   const index = (column) => appointmentColumns.indexOf(column);
 
-  // Workflow metadata is authoritative server state. A member may create and
+  // Workflow metadata is authoritative server state. A client may create and
   // edit a pending request, but can never turn it into an approved request.
   if (!isStaff) {
     values[index('status')] = existing ? existing.status : 'pending';
@@ -176,6 +209,30 @@ function profileValues(body, existingProfile = null) {
 }
 
 router.use(authenticate, syncUser);
+router.get('/settings', async (req, res) => res.json(await getClinicSettings()));
+router.put('/settings', requireRole('admin', 'superadmin'), async (req, res) => {
+  const workingDays = [...new Set((req.body.workingDays || []).map(Number))].filter((day) => Number.isInteger(day) && day >= 0 && day <= 6).sort();
+  const daysOff = [...new Set((req.body.daysOff || []).filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)))].sort();
+  const openingTime = String(req.body.openingTime || '').slice(0, 5); const closingTime = String(req.body.closingTime || '').slice(0, 5);
+  if (!workingDays.length || !/^\d{2}:\d{2}$/.test(openingTime) || !/^\d{2}:\d{2}$/.test(closingTime) || minutes(openingTime) >= minutes(closingTime)) throw appointmentError(400, 'Choose at least one working day and valid opening and closing times');
+  const result = await db.query('UPDATE clinic_settings SET working_days=$1, opening_time=$2, closing_time=$3, days_off=$4, updated_at=NOW() WHERE id=1 RETURNING working_days, opening_time, closing_time, days_off', [JSON.stringify(workingDays), openingTime, closingTime, JSON.stringify(daysOff)]);
+  res.json(camelSettings(result.rows[0]));
+});
+router.get('/availability', async (req, res) => {
+  const { date, dentistId, serviceId, excludeId } = req.query;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '') || !dentistId || !serviceId) throw appointmentError(400, 'Date, service, and dentist are required');
+  const duration = await requireBookableService(serviceId, dentistId);
+  const settings = await getClinicSettings();
+  const closedMessage = isClinicOpen(date, settings.openingTime, 0, settings);
+  if (closedMessage) return res.json({ duration, settings, availableTimes: [] });
+  const result = await db.query("SELECT appointment_time, duration FROM appointments WHERE dentist_id=$1 AND appointment_date=$2 AND status IN ('pending', 'approved') AND ($3::varchar IS NULL OR id <> $3)", [dentistId, date, excludeId || null]);
+  const availableTimes = [];
+  for (let start = minutes(settings.openingTime); start + duration <= minutes(settings.closingTime); start += 30) {
+    const available = !result.rows.some((item) => start < minutes(item.appointment_time) + Number(item.duration) && start + duration > minutes(item.appointment_time));
+    if (available) availableTimes.push(`${String(Math.floor(start / 60)).padStart(2, '0')}:${String(start % 60).padStart(2, '0')}`);
+  }
+  res.json({ duration, settings, availableTimes });
+});
 router.get('/profiles', async (req, res) => {
   const result = await db.query(canManageAll(req) ? 'SELECT * FROM patient_profiles ORDER BY created_at DESC' : 'SELECT * FROM patient_profiles WHERE user_id = $1 ORDER BY created_at DESC', canManageAll(req) ? [] : [req.auth.userId]);
   res.json(result.rows.map(camelProfile));
@@ -249,6 +306,7 @@ router.post('/appointments', async (req, res) => {
   validateFutureAppointment(req.body.date, req.body.time);
   await requireUsableProfile(req, req.body.profileId);
   req.body.duration = await requireBookableService(req.body.serviceId, req.body.dentistId);
+  await ensureAppointmentAvailable({ ...req.body });
   const values = appointmentValues(req.body, null, req);
   const result = await db.query(`INSERT INTO appointments (id, user_id, ${appointmentDbColumns.join(', ')}) VALUES ($1, $2, ${appointmentColumns.map((_, i) => `$${i + 3}`).join(', ')}) RETURNING *`, [id, req.auth.userId, ...values]);
   res.status(201).json(camelAppointment(result.rows[0]));
@@ -263,6 +321,7 @@ router.put('/appointments/:id', async (req, res) => {
   validateFutureAppointment(date, time);
   await requireUsableProfile(req, req.body.profileId ?? existing.rows[0].profile_id);
   req.body.duration = await requireBookableService(req.body.serviceId ?? existing.rows[0].service_id, req.body.dentistId ?? existing.rows[0].dentist_id);
+  await ensureAppointmentAvailable({ date, time, duration: req.body.duration, dentistId: req.body.dentistId ?? existing.rows[0].dentist_id, excludeId: existing.rows[0].id });
   const values = appointmentValues(req.body, existing.rows[0], req);
   const assignments = appointmentDbColumns.map((column, i) => `${column} = $${i + 1}`).join(', ');
   const result = await db.query(`UPDATE appointments SET ${assignments}, updated_at = NOW() WHERE id = $${values.length + 1} RETURNING *`, [...values, req.params.id]);

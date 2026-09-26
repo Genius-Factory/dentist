@@ -31,6 +31,7 @@ export default function BookedPage() {
   const { getToken } = useAuth()
   const [bookings, setBookings] = useState([])
   const [servicesById, setServicesById] = useState({})
+  const [dentistsById, setDentistsById] = useState({})
   const [now, setNow] = useState(Date.now())
   const [showArchived, setShowArchived] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -47,7 +48,10 @@ export default function BookedPage() {
       .then(([appointmentsResult, servicesResult]) => {
         if (appointmentsResult.status === 'fulfilled') setBookings(appointmentsResult.value.filter((booking) => booking.userId === user.id))
         else console.error(appointmentsResult.reason)
-        if (servicesResult.status === 'fulfilled') setServicesById(Object.fromEntries(servicesResult.value.map((service) => [service.id, service.name])))
+        if (servicesResult.status === 'fulfilled') {
+          setServicesById(Object.fromEntries(servicesResult.value.map((service) => [service.id, service.name])))
+          setDentistsById(Object.fromEntries(servicesResult.value.flatMap((service) => (service.dentists || []).map((dentist) => [dentist.id, dentist.name]))))
+        }
         else console.error(servicesResult.reason)
       })
       .finally(() => setLoading(false))
@@ -181,6 +185,7 @@ export default function BookedPage() {
                       <p><span className="font-medium text-slate-700">Time:</span> {booking.time}</p>
                       <p><span className="font-medium text-slate-700">Duration:</span> {booking.duration} minutes</p>
                       <p><span className="font-medium text-slate-700">Service:</span> {serviceLabel(booking, servicesById)}</p>
+                      <p><span className="font-medium text-slate-700">Dentist:</span> {dentistsById[booking.dentistId || booking.dentist_id] || 'Assigned dentist'}</p>
                     </div>
                   </div>
 
@@ -195,14 +200,14 @@ export default function BookedPage() {
                 </div>
 
                 <div className="mt-5 flex flex-wrap gap-3">
-                  <button
+                  {status !== 'approved' && <button
                     type="button"
                     onClick={() => navigate(`/reservation?edit=${booking.id}`)}
                     disabled={!canEdit}
                     className="rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Edit
-                  </button>
+                  </button>}
                   {booking.profileId && (
                     <button
                       type="button"
@@ -212,14 +217,14 @@ export default function BookedPage() {
                       Patient Details
                     </button>
                   )}
-                  <button
+                  {status !== 'approved' && <button
                     type="button"
                     onClick={() => cancelBooking(booking.id)}
                     disabled={!canEdit}
                     className="rounded-full border border-red-200 px-5 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Cancel
-                  </button>
+                  </button>}
                 </div>
               </article>
             )

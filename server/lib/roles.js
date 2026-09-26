@@ -1,9 +1,9 @@
-const VALID_ROLES = ['superadmin', 'admin', 'secretary', 'member'];
-const ROLE_RANK = { member: 0, secretary: 1, admin: 2, superadmin: 3 };
+const VALID_ROLES = ['superadmin', 'admin', 'secretary', 'client'];
+const ROLE_RANK = { client: 0, secretary: 1, admin: 2, superadmin: 3 };
 
 function normalizeRole(role) {
   const value = String(role || '').trim().toLowerCase();
-  return VALID_ROLES.includes(value) ? value : 'member';
+  return value === 'member' ? 'client' : (VALID_ROLES.includes(value) ? value : 'client');
 }
 
 function canManageUser(actorRole, targetRole) {

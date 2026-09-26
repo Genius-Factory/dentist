@@ -22,7 +22,7 @@ export default function PatientsPage() {
   const [profiles, setProfiles] = useState([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
-  const role = user?.publicMetadata?.role || 'member'
+  const role = user?.publicMetadata?.role || 'client'
   const isStaff = isStaffRole(role)
   const canCreateProfile = ['admin', 'superadmin'].includes(normalizeRole(role))
 
