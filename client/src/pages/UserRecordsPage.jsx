@@ -8,8 +8,8 @@ import { normalizeRole } from '../lib/bookings'
 import DatabaseLoading from '../components/DatabaseLoading'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
-const ROLES = ['superadmin', 'admin', 'secretary', 'member']
-const ROLE_RANK = { member: 0, secretary: 1, admin: 2, superadmin: 3 }
+const ROLES = ['superadmin', 'admin', 'secretary', 'client']
+const ROLE_RANK = { client: 0, secretary: 1, admin: 2, superadmin: 3 }
 
 function canManageUser(actorRole, record) {
   return ROLE_RANK[normalizeRole(actorRole)] > ROLE_RANK[normalizeRole(record.role)]
@@ -26,7 +26,7 @@ function formatDate(value) {
 
 function EditUserDialog({ user, roleOptions, onClose, onSave, saving }) {
   const [username, setUsername] = useState(user.username || '')
-  const [role, setRole] = useState(user.role || 'member')
+  const [role, setRole] = useState(user.role || 'client')
 
   const submit = (event) => {
     event.preventDefault()

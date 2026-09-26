@@ -2,7 +2,7 @@ export const EDIT_WINDOW_MS = 24 * 60 * 60 * 1000
 
 export function normalizeRole(role) {
   const value = String(role || '').toLowerCase()
-  return ['superadmin', 'admin', 'secretary', 'member'].includes(value) ? value : 'member'
+  return value === 'member' ? 'client' : (['superadmin', 'admin', 'secretary', 'client'].includes(value) ? value : 'client')
 }
 
 export function isSecretaryRole(role) {

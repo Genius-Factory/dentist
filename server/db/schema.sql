@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   id         VARCHAR(255) PRIMARY KEY,            -- Clerk user ID
   username   VARCHAR(255) UNIQUE,
   email      VARCHAR(255) UNIQUE NOT NULL,
-  role       VARCHAR(50)  DEFAULT 'member',       -- 'superadmin' | 'admin' | 'secretary' | 'member'
+  role       VARCHAR(50)  DEFAULT 'client',       -- 'superadmin' | 'admin' | 'secretary' | 'client'
   created_at TIMESTAMP    DEFAULT NOW()
 );
 
@@ -17,7 +17,18 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(255);
 CREATE UNIQUE INDEX IF NOT EXISTS users_username_idx ON users(username);
 
 -- Safe legacy cleanup: former librarian accounts are normal member accounts.
-UPDATE users SET role = 'member' WHERE role = 'librarian';
+UPDATE users SET role = 'client' WHERE role IN ('librarian', 'member');
+
+-- One clinic-wide booking policy, managed from the admin panel.
+CREATE TABLE IF NOT EXISTS clinic_settings (
+  id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  working_days JSONB NOT NULL DEFAULT '[1,2,3,4,5]'::jsonb,
+  opening_time TIME NOT NULL DEFAULT '08:00',
+  closing_time TIME NOT NULL DEFAULT '17:00',
+  days_off JSONB NOT NULL DEFAULT '[]'::jsonb,
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+INSERT INTO clinic_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 
 -- Patient details are application data, not browser-local state.
 CREATE TABLE IF NOT EXISTS patient_profiles (
