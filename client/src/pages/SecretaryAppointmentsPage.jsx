@@ -9,7 +9,7 @@ import {
   isSecretaryRole,
 } from '../lib/bookings'
 import { findProfileForBooking } from '../lib/patientProfiles'
-import { getAppointments, getProfiles, updateAppointment } from '../lib/recordsApi'
+import { getAppointments, getProfiles, getServices, updateAppointment } from '../lib/recordsApi'
 import DatabaseLoading from '../components/DatabaseLoading'
 import PaymentManager from '../components/PaymentManager'
 
@@ -26,6 +26,8 @@ export default function SecretaryAppointmentsPage() {
   const { getToken } = useAuth()
   const [profiles, setProfiles] = useState([])
   const [bookings, setBookings] = useState([])
+  const [servicesById, setServicesById] = useState({})
+  const [dentistsById, setDentistsById] = useState({})
   const [showArchived, setShowArchived] = useState(false)
   const [loading, setLoading] = useState(true)
   const role = user?.publicMetadata?.role || 'client'
@@ -35,7 +37,12 @@ export default function SecretaryAppointmentsPage() {
   useEffect(() => {
     if (!isLoaded || !user || !canApproveAppointments) return
     setLoading(true)
-    Promise.all([getAppointments(getToken), getProfiles(getToken)]).then(([items, profileItems]) => { setBookings(sortByAppointmentDate(items)); setProfiles(profileItems) }).catch(console.error).finally(() => setLoading(false))
+    Promise.all([getAppointments(getToken), getProfiles(getToken), getServices(getToken)]).then(([items, profileItems, services]) => {
+      setBookings(sortByAppointmentDate(items))
+      setProfiles(profileItems)
+      setServicesById(Object.fromEntries(services.map((service) => [service.id, service])))
+      setDentistsById(Object.fromEntries(services.flatMap((service) => (service.dentists || []).map((dentist) => [dentist.id, dentist.name]))))
+    }).catch(console.error).finally(() => setLoading(false))
   }, [getToken, isLoaded, canApproveAppointments, user])
 
   const activeBookings = useMemo(
@@ -180,7 +187,11 @@ export default function SecretaryAppointmentsPage() {
                       <h2 className="text-base font-semibold text-slate-900">{booking.name}</h2>
                       <p className="text-sm text-slate-500">{booking.date}</p>
                     </div>
-                    <p className="mt-1 truncate text-sm text-slate-600">{booking.medicalIssue}</p>
+                    <div className="mt-1 space-y-1 text-sm text-slate-600">
+                      <p className="truncate"><span className="font-medium text-slate-700">Service:</span> {serviceLabel(booking, servicesById)}</p>
+                      <p><span className="font-medium text-slate-700">Dentist:</span> {dentistLabel(booking, dentistsById)}</p>
+                      <p><span className="font-medium text-slate-700">Price:</span> {priceLabel(booking, servicesById)}</p>
+                    </div>
                   </div>
                   <PaymentManager appointment={booking} />
                   <span className={`w-fit rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClasses(status)}`}>
@@ -213,6 +224,9 @@ export default function SecretaryAppointmentsPage() {
                       <p><span className="font-medium text-slate-700">Time:</span> {booking.time}</p>
                       <p><span className="font-medium text-slate-700">Duration:</span> {booking.duration} minutes</p>
                       <p><span className="font-medium text-slate-700">Emergency:</span> {booking.emergencyLevel}</p>
+                      <p><span className="font-medium text-slate-700">Service:</span> {serviceLabel(booking, servicesById)}</p>
+                      <p><span className="font-medium text-slate-700">Dentist:</span> {dentistLabel(booking, dentistsById)}</p>
+                      <p><span className="font-medium text-slate-700">Price:</span> {priceLabel(booking, servicesById)}</p>
                       <p><span className="font-medium text-slate-700">Date of Birth:</span> {booking.dateOfBirth}</p>
                       {booking.guardianContact && (
                         <p><span className="font-medium text-slate-700">Guardian:</span> {booking.guardianContact}</p>
@@ -263,4 +277,17 @@ export default function SecretaryAppointmentsPage() {
     </div>
   </div>
 )
+}
+
+function serviceLabel(booking, servicesById) {
+  return booking.serviceName || servicesById[booking.serviceId || booking.service_id]?.name || 'Service unavailable'
+}
+
+function dentistLabel(booking, dentistsById) {
+  return dentistsById[booking.dentistId || booking.dentist_id] || 'Assigned dentist'
+}
+
+function priceLabel(booking, servicesById) {
+  const price = servicesById[booking.serviceId || booking.service_id]?.price
+  return Number.isFinite(Number(price)) ? Number(price) === 0 ? 'Free' : `$${Number(price).toFixed(2)}` : 'Price unavailable'
 }

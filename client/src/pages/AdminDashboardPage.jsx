@@ -72,11 +72,11 @@ export default function AdminDashboardPage() {
     { label: 'Pending Requests', value: dashboard.pending.length, icon: ClipboardList, note: 'Awaiting a response', tone: 'text-amber-600 bg-amber-50' },
   ]
 
-  return <div className="h-[calc(100dvh-4rem)] overflow-y-auto bg-[#f8faff] text-slate-900 md:h-dvh">
+  return <div className="admin-dashboard-page min-h-full bg-[#f8faff] text-slate-900">
       <header className="sticky top-0 z-30 flex h-[78px] items-center gap-4 border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-7">
         <label className="relative hidden max-w-[480px] flex-1 md:block"><Search size={19} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search today's appointments" className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm outline-none focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100" /></label>
       </header>
-      <main className="mx-auto max-w-[1500px] p-4 sm:p-7">
+      <main className="w-full p-4 sm:p-7">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Admin Dashboard</h1><p className="mt-1 text-sm text-slate-500">Manage appointments, patients, and clinic activity.</p></div><p className="text-xs font-medium text-slate-400">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p></div>
         {error && <div role="status" className="mb-5 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{error}<button onClick={() => setError('')} aria-label="Dismiss message"><X size={17} /></button></div>}
         <div className="mb-5 flex w-fit rounded-xl bg-slate-100 p-1"><button onClick={() => setSection('analytics')} className={`rounded-lg px-4 py-2 text-sm font-semibold ${section === 'analytics' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'}`}>Analytics</button><button onClick={() => setSection('admin')} className={`rounded-lg px-4 py-2 text-sm font-semibold ${section === 'admin' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'}`}>Admin panel</button></div>

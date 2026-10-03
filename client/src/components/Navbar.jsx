@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { UserButton, useUser, SignedIn, SignedOut } from '@clerk/clerk-react'
-import { CalendarCheck, ClipboardCheck, Database, Home, LayoutDashboard, LogIn, Menu, Users, X } from 'lucide-react'
+import { CalendarCheck, Database, Home, LayoutDashboard, LogIn, Menu, Moon, Sun, Users, X } from 'lucide-react'
 import { isSecretaryRole, normalizeRole } from '../lib/bookings'
 // import { useCart } from '../contexts/CartContext'
 
@@ -13,11 +13,22 @@ export default function Navbar() {
   const loc = useLocation()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem('theme')
+    return savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
+
+  useEffect(() => {
+    const theme = isDarkMode ? 'dark' : 'light'
+    document.documentElement.dataset.theme = theme
+    document.documentElement.style.colorScheme = theme
+    localStorage.setItem('theme', theme)
+  }, [isDarkMode])
 
   const active = (path) =>
     loc.pathname === path
-      ? 'bg-blue-50 text-blue-700 font-semibold'
-      : 'text-gray-600 hover:bg-gray-50 hover:text-blue-700'
+      ? 'sidebar-nav-active bg-white text-blue-700 font-semibold'
+      : 'text-gray-600 hover:bg-white hover:text-blue-700'
 
   const labelClass = 'whitespace-nowrap md:max-w-0 md:overflow-hidden md:opacity-0 md:transition-all md:duration-200 md:group-hover/sidebar:max-w-40 md:group-hover/sidebar:opacity-100'
 
@@ -26,7 +37,7 @@ export default function Navbar() {
       <Link
         to="/"
         onClick={() => setMobileOpen(false)}
-        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active('/')}`}
+        className={`sidebar-nav-item flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${active('/')}`}
       >
         <Home size={18} className="shrink-0" />
         <span className={labelClass}>Home</span>
@@ -35,7 +46,7 @@ export default function Navbar() {
         {isAdmin && <Link
           to="/admin/dashboard"
           onClick={() => setMobileOpen(false)}
-          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active('/admin/dashboard')}`}
+          className={`sidebar-nav-item flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${active('/admin/dashboard')}`}
         >
           <LayoutDashboard size={18} className="shrink-0" />
           <span className={labelClass}>Admin Dashboard</span>
@@ -43,7 +54,7 @@ export default function Navbar() {
         <Link
           to="/booked"
           onClick={() => setMobileOpen(false)}
-          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active('/booked')}`}
+          className={`sidebar-nav-item flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${active('/booked')}`}
         >
           <CalendarCheck size={18} className="shrink-0" />
           <span className={labelClass}>Booked</span>
@@ -51,7 +62,7 @@ export default function Navbar() {
         <Link
           to={isAdmin || isSecretary ? '/patients' : '/my-profile'}
           onClick={() => setMobileOpen(false)}
-          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active(isAdmin || isSecretary ? '/patients' : '/my-profile')}`}
+          className={`sidebar-nav-item flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${active(isAdmin || isSecretary ? '/patients' : '/my-profile')}`}
         >
           <Users size={18} className="shrink-0" />
           <span className={labelClass}>{isAdmin || isSecretary ? 'Patients' : 'My Profile'}</span>
@@ -59,7 +70,7 @@ export default function Navbar() {
         {isAdmin && <Link
           to="/users"
           onClick={() => setMobileOpen(false)}
-          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active('/users')}`}
+          className={`sidebar-nav-item flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${active('/users')}`}
         >
           <Database size={18} className="shrink-0" />
           <span className={labelClass}>User Records</span>
@@ -67,27 +78,27 @@ export default function Navbar() {
         {isAdmin && <Link
           to="/db"
           onClick={() => setMobileOpen(false)}
-          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active('/db')}`}
+          className={`sidebar-nav-item flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${active('/db')}`}
         >
           <Database size={18} className="shrink-0" />
           <span className={labelClass}>DB</span>
         </Link>}
-        {isSecretary && (
-          <Link
-            to="/secretary/appointments"
-            onClick={() => setMobileOpen(false)}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active('/secretary/appointments')}`}
-          >
-            <ClipboardCheck size={18} className="shrink-0" />
-            <span className={labelClass}>Approvals</span>
-          </Link>
-        )}
       </SignedIn>
     </div>
   )
 
   const accountControls = (
     <div className="border-t pt-4">
+      <button
+        type="button"
+        onClick={() => setIsDarkMode((enabled) => !enabled)}
+        className="mb-3 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-600 transition hover:bg-gray-50 hover:text-blue-700"
+        aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+        title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+      >
+        {isDarkMode ? <Moon size={18} className="shrink-0" /> : <Sun size={18} className="shrink-0" />}
+        <span className={labelClass}>{isDarkMode ? 'Dark mode' : 'Light mode'}</span>
+      </button>
       <SignedIn>
         <div className="flex items-center justify-between gap-3 md:justify-center md:group-hover/sidebar:justify-between">
           <span className="hidden text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full capitalize md:group-hover/sidebar:inline-block">{role}</span>
