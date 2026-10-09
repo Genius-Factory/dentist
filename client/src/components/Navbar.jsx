@@ -27,8 +27,8 @@ export default function Navbar() {
 
   const active = (path) =>
     loc.pathname === path
-      ? 'sidebar-nav-active bg-white text-blue-700 font-semibold'
-      : 'text-gray-600 hover:bg-white hover:text-blue-700'
+      ? 'sidebar-nav-active bg-blue text-blue-700 font-semibold'
+      : 'text-gray-600 hover:bg-blue hover:text-blue-700'
 
   const labelClass = 'whitespace-nowrap md:max-w-0 md:overflow-hidden md:opacity-0 md:transition-all md:duration-200 md:group-hover/sidebar:max-w-40 md:group-hover/sidebar:opacity-100'
 
@@ -92,7 +92,7 @@ export default function Navbar() {
       <button
         type="button"
         onClick={() => setIsDarkMode((enabled) => !enabled)}
-        className="mb-3 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-600 transition hover:bg-gray-50 hover:text-blue-700"
+        className="mb-3 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-white transition hover:bg-blue hover:text-blue-700"
         aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
         title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
       >
