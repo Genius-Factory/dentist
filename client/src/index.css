@@ -90,10 +90,10 @@ aside .sidebar-nav-item:hover {
   color: #1d4ed8 !important;
 }
 
-/* Override the general dark-surface rule applied to Tailwind's `bg-white`. */
+/* Keep active and hovered navigation items aligned with the dark page surface. */
 html[data-theme='dark'] aside .sidebar-nav-active,
 html[data-theme='dark'] aside .sidebar-nav-item:hover {
-  background-color: #ffffff !important;
+  background-color: #0f172a !important;
   color: #1d4ed8 !important;
 }
 

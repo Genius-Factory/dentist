@@ -15,7 +15,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem('theme')
-    return savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
+    return savedTheme === 'dark'
   })
 
   useEffect(() => {
@@ -92,7 +92,7 @@ export default function Navbar() {
       <button
         type="button"
         onClick={() => setIsDarkMode((enabled) => !enabled)}
-        className="mb-3 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-white transition hover:bg-blue hover:text-blue-700"
+        className="mb-3 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-600 transition hover:bg-blue hover:text-blue-700"
         aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
         title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
       >
@@ -111,7 +111,7 @@ export default function Navbar() {
             setMobileOpen(false)
             navigate('/sign-in')
           }}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-blue transition hover:bg-blue-700"
         >
           <LogIn size={16} className="shrink-0" />
           <span className={labelClass}>Sign In</span>
