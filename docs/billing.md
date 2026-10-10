@@ -10,6 +10,10 @@ Presets use the browser's local calendar: today, Monday through today, month-to-
 
 ## API
 
+Staff appointment cards show **Not billed**, **Unpaid**, **Partially paid**, or **Paid** from the appointment list response, without fetching billing for each card. Fully paid appointments retain a **Payment Details** button showing charges, received dates, and payment history. Voided payments are excluded from the status calculation.
+
+Payment entry uses **Submit payment**, then a review screen with **Confirm payment**. Only confirmation sends the payment. Pending submissions are saved in session storage per staff user and appointment before sending, so closing the dialog or reloading the same browser tab preserves the request ID. An uncertain result blocks new payments until staff check the status or explicitly retry the same submission. A successful write followed by a failed refresh retries only the billing read. Session storage does not coordinate separate browser tabs or devices.
+
 All endpoints require Clerk authentication. Financial writes accept a browser `timezoneOffset` in minutes for calendar-date validation. Amounts are USD decimal strings with at most two decimal places. Reporting amounts use integer cents.
 
 - `GET /api/billing/appointments/:id`: suggested service price, confirmed charge, payments (including voids), collected and remaining cents. Staff only.
@@ -23,3 +27,5 @@ All endpoints require Clerk authentication. Financial writes accept a browser `t
 `npm run test:billing` in `server/` runs currency, date, and aggregation unit tests. For API and concurrency integration tests, set `BILLING_TEST_DB=1` and optionally `BILLING_TEST_DATABASE_URL`, then run the same command. It otherwise uses `DATABASE_URL` from `server/.env`. The test account must be able to create a schema. Tests create and remove a uniquely named `billing_test_*` schema without modifying public application data. Authentication is stubbed only inside the test app; database operations and HTTP requests are real.
 
 Run `npm run build` and `npm run lint` from `client/`. Browser acceptance checks: desktop and mobile layout; keyboard focus through date inputs, chart points, and the payment dialog; empty and error states; recording and voiding a partial payment; changing date ranges; and switching between active and archived appointment lists.
+
+`npm run test:payments` in `client/` covers billing-read deduplication, stable rerenders, stale responses, submission review, rapid clicks, Enter-key entry, storage failures, persistent retry IDs, lost responses, failed refreshes, payment status badges, and settled payment details.

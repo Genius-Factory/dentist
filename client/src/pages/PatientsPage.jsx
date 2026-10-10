@@ -86,7 +86,7 @@ export default function PatientsPage() {
         </div>
       </div>
 
-      <section className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-3">
+      <section className="patient-summary grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-3">
         <div className="flex items-center gap-4 rounded-xl bg-cyan-50 p-4">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-600 text-white"><Users size={22} /></span>
           <div>

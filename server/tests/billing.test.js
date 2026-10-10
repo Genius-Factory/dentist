@@ -161,6 +161,23 @@ test('billing API with real PostgreSQL transactions', { skip: process.env.BILLIN
       assert.equal(data.timeline.at(-1).amountCents, 5000);
       assert.equal(data.services.find((s) => s.name === 'Cleaning').amountCents, 10000);
     });
+    await t.test('staff appointment summaries distinguish unbilled, unpaid, partial, paid and voided payments', async () => {
+      const { billingColumns, billingJoins } = require('../lib/appointmentBilling');
+      await db.query("INSERT INTO appointments (id, service_id) VALUES ('unbilled', 'clean'), ('unpaid', 'clean'), ('zero', 'clean')");
+      await charge('unpaid', '100');
+      await charge('zero', '0');
+      const result = await db.query(`SELECT a.id, ${billingColumns} FROM appointments a ${billingJoins}`);
+      const summaries = Object.fromEntries(result.rows.map((row) => [row.id, row.billing]));
+      assert.equal(summaries.unbilled.status, 'not_billed');
+      assert.equal(summaries.unbilled.remainingCents, null);
+      assert.equal(summaries.unpaid.status, 'unpaid');
+      assert.equal(summaries.unpaid.remainingCents, 10000);
+      assert.equal(summaries.zero.status, 'paid');
+      assert.equal(summaries.a.status, 'paid');
+      assert.equal(summaries.a.collectedCents, 10000); // The voided entry is excluded.
+      assert.equal(summaries.b.status, 'partial');
+      assert.equal(summaries.b.remainingCents, 4000);
+    });
   } finally {
     if (server) await new Promise((resolve) => server.close(resolve));
     if (db) await db.end();

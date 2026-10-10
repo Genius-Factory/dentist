@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth, useUser } from '@clerk/clerk-react'
 import {
@@ -12,6 +12,7 @@ import { findProfileForBooking } from '../lib/patientProfiles'
 import { getAppointments, getProfiles, getServices, updateAppointment } from '../lib/recordsApi'
 import DatabaseLoading from '../components/DatabaseLoading'
 import PaymentManager from '../components/PaymentManager'
+import { money } from '../lib/finance'
 
 function sortByAppointmentDate(bookings) {
   return [...bookings].sort((a, b) => {
@@ -23,7 +24,10 @@ function sortByAppointmentDate(bookings) {
 
 export default function SecretaryAppointmentsPage() {
   const { user, isLoaded } = useUser()
-  const { getToken } = useAuth()
+  const { getToken, sessionId } = useAuth()
+  const token = useRef(getToken)
+  token.current = getToken
+  const userId = user?.id
   const [profiles, setProfiles] = useState([])
   const [bookings, setBookings] = useState([])
   const [servicesById, setServicesById] = useState({})
@@ -35,15 +39,18 @@ export default function SecretaryAppointmentsPage() {
   const now = Date.now()
 
   useEffect(() => {
-    if (!isLoaded || !user || !canApproveAppointments) return
+    if (!isLoaded || !userId || !canApproveAppointments) return
+    let active = true
     setLoading(true)
-    Promise.all([getAppointments(getToken), getProfiles(getToken), getServices(getToken)]).then(([items, profileItems, services]) => {
+    Promise.all([getAppointments(() => token.current()), getProfiles(() => token.current()), getServices(() => token.current())]).then(([items, profileItems, services]) => {
+      if (!active) return
       setBookings(sortByAppointmentDate(items))
       setProfiles(profileItems)
       setServicesById(Object.fromEntries(services.map((service) => [service.id, service])))
       setDentistsById(Object.fromEntries(services.flatMap((service) => (service.dentists || []).map((dentist) => [dentist.id, dentist.name]))))
-    }).catch(console.error).finally(() => setLoading(false))
-  }, [getToken, isLoaded, canApproveAppointments, user])
+    }).catch(console.error).finally(() => active && setLoading(false))
+    return () => { active = false }
+  }, [isLoaded, canApproveAppointments, userId, sessionId])
 
   const activeBookings = useMemo(
     () => bookings.filter((booking) => !isArchivedBooking(booking, now)),
@@ -180,23 +187,23 @@ export default function SecretaryAppointmentsPage() {
             const status = getBookingStatus(booking)
 
             return (
-              <article key={booking.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0 text-left">
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                      <h2 className="text-base font-semibold text-slate-900">{booking.name}</h2>
-                      <p className="text-sm text-slate-500">{booking.date}</p>
+              <article key={booking.id} className="appointment-card rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 flex-1 text-left">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h2 className="text-lg font-semibold text-slate-900">{booking.name}</h2>
+                      <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusClasses(status)}`}>{getStatusLabel(status)}</span>
                     </div>
-                    <div className="mt-1 space-y-1 text-sm text-slate-600">
-                      <p className="truncate"><span className="font-medium text-slate-700">Service:</span> {serviceLabel(booking, servicesById)}</p>
-                      <p><span className="font-medium text-slate-700">Dentist:</span> {dentistLabel(booking, dentistsById)}</p>
-                      <p><span className="font-medium text-slate-700">Price:</span> {priceLabel(booking, servicesById)}</p>
+                    <p className="mt-1 text-sm text-slate-500">{booking.date}{booking.time && ` ? ${booking.time}`}</p>
+                    <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-slate-600">
+                      <span>{serviceLabel(booking, servicesById)}</span>
+                      {dentistsById[booking.dentistId || booking.dentist_id] && <span>{dentistLabel(booking, dentistsById)}</span>}
                     </div>
                   </div>
-                  <PaymentManager appointment={booking} />
-                  <span className={`w-fit rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClasses(status)}`}>
-                    {getStatusLabel(status)}
-                  </span>
+                  <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:items-end sm:border-0 sm:pt-0">
+                    <p className="text-sm text-slate-500">{booking.billing?.chargedCents != null ? <><span className="font-semibold text-slate-900">{money(booking.billing.chargedCents)}</span> charged{booking.billing.remainingCents > 0 && <> &middot; {money(booking.billing.remainingCents)} remaining</>}</> : 'No charge confirmed'}</p>
+                    <PaymentManager appointment={booking} onBillingChange={(id, billing) => setBookings((items) => items.map((entry) => entry.id === id ? { ...entry, billing } : entry))} />
+                  </div>
                 </div>
               </article>
             )
@@ -210,7 +217,7 @@ export default function SecretaryAppointmentsPage() {
             const profile = findProfileForBooking(profiles, booking)
 
             return (
-              <article key={booking.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <article key={booking.id} className="appointment-card rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -238,7 +245,7 @@ export default function SecretaryAppointmentsPage() {
                   </div>
 
                   <div className="flex min-w-56 flex-wrap gap-2 lg:justify-end">
-                    <PaymentManager appointment={booking} />
+                    <PaymentManager appointment={booking} onBillingChange={(id, billing) => setBookings((items) => items.map((entry) => entry.id === id ? { ...entry, billing } : entry))} />
                     {profile && (
                       <Link
                         to={`/patients/${profile.id}`}
@@ -280,7 +287,7 @@ export default function SecretaryAppointmentsPage() {
 }
 
 function serviceLabel(booking, servicesById) {
-  return booking.serviceName || servicesById[booking.serviceId || booking.service_id]?.name || 'Service unavailable'
+  return booking.serviceName || servicesById[booking.serviceId || booking.service_id]?.name || 'Service not specified'
 }
 
 function dentistLabel(booking, dentistsById) {
@@ -288,6 +295,7 @@ function dentistLabel(booking, dentistsById) {
 }
 
 function priceLabel(booking, servicesById) {
+  if (booking.billing?.chargedCents != null) return money(booking.billing.chargedCents)
   const price = servicesById[booking.serviceId || booking.service_id]?.price
-  return Number.isFinite(Number(price)) ? Number(price) === 0 ? 'Free' : `$${Number(price).toFixed(2)}` : 'Price unavailable'
+  return price != null && price !== '' && Number.isFinite(Number(price)) ? Number(price) === 0 ? 'Free' : `$${Number(price).toFixed(2)}` : 'Price unavailable'
 }

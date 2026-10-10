@@ -11,9 +11,12 @@ function friendlyError(response, body) {
 
 async function request(getToken, path, options = {}) {
   let response
-  try { response = await fetch(`${API_URL}${path}`, { ...options, headers: { Authorization: `Bearer ${await getToken()}`, ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...options.headers } }) } catch { throw new Error('We could not reach the clinic server. Check your connection and try again.') }
-  const body = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(friendlyError(response, body))
+  try { response = await fetch(`${API_URL}${path}`, { ...options, headers: { Authorization: `Bearer ${await getToken()}`, ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...options.headers } }) } catch { throw Object.assign(new Error('We could not reach the clinic server. Check your connection and try again.'), { status: 0 }) }
+  const body = await response.json().catch(() => {
+    if (response.ok) throw Object.assign(new Error('The server response could not be confirmed.'), { status: 0 })
+    return {}
+  })
+  if (!response.ok) throw Object.assign(new Error(friendlyError(response, body)), { status: response.status })
   return body
 }
 
@@ -58,5 +61,5 @@ export const deleteAppointment = (getToken, id) => request(getToken, `/api/recor
 export const getRevenue = (getToken, startDate, endDate) => request(getToken, `/api/billing/revenue?${new URLSearchParams({ startDate, endDate })}`)
 export const getBilling = (getToken, id) => request(getToken, `/api/billing/appointments/${encodeURIComponent(id)}`)
 export const confirmCharge = (getToken, id, body) => request(getToken, `/api/billing/appointments/${encodeURIComponent(id)}/charge`, { method: 'POST', body: JSON.stringify({ ...body, timezoneOffset: new Date().getTimezoneOffset() }) })
-export const recordPayment = (getToken, id, body) => request(getToken, `/api/billing/appointments/${encodeURIComponent(id)}/payments`, { method: 'POST', body: JSON.stringify({ ...body, timezoneOffset: new Date().getTimezoneOffset() }) })
+export const recordPayment = (getToken, id, body) => request(getToken, `/api/billing/appointments/${encodeURIComponent(id)}/payments`, { method: 'POST', body: JSON.stringify({ timezoneOffset: new Date().getTimezoneOffset(), ...body }) })
 export const voidPayment = (getToken, id, paymentId, reason) => request(getToken, `/api/billing/appointments/${encodeURIComponent(id)}/payments/${paymentId}/void`, { method: 'POST', body: JSON.stringify({ reason }) })

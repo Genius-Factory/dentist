@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { billingColumns, billingJoins } = require('../lib/appointmentBilling');
 const { authenticate, requireRole, syncUser } = require('../middleware/auth');
 
 const profileColumns = ['firstName', 'lastName', 'dateOfBirth', 'gender', 'phone', 'email', 'address', 'profilePicture', 'profilePictureType', 'guardianName', 'guardianRelationship', 'guardianPhone', 'emergencyContactName', 'emergencyContactRelationship', 'emergencyContactPhone', 'allergies', 'notes', 'preferredContactMethod', 'communicationPreference', 'language'];
@@ -317,7 +318,8 @@ router.put('/profiles/:id', async (req, res) => {
   res.json(camelProfile(result.rows[0]));
 });
 router.get('/appointments', async (req, res) => {
-  const select = 'SELECT a.*, s.name AS service_name FROM appointments a LEFT JOIN services s ON s.id = a.service_id';
+  const select = `SELECT a.*, s.name AS service_name${canManageAll(req) ? `, ${billingColumns}` : ''}
+    FROM appointments a LEFT JOIN services s ON s.id = a.service_id ${canManageAll(req) ? billingJoins : ''}`;
   const result = await db.query(canManageAll(req) ? `${select} ORDER BY a.appointment_date, a.appointment_time` : `${select} WHERE a.user_id = $1 ORDER BY a.appointment_date, a.appointment_time`, canManageAll(req) ? [] : [req.auth.userId]);
   res.json(result.rows.map(camelAppointment));
 });
