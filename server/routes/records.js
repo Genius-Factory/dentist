@@ -62,9 +62,30 @@ function validateFutureAppointment(date, time) {
 }
 
 const defaultClinicSettings = { workingDays: [1, 2, 3, 4, 5], openingTime: '08:00', closingTime: '17:00', daysOff: [] };
+function arraySetting(value, fallback) {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      return value.split(',').map((item) => item.trim());
+    }
+  }
+  return fallback;
+}
 function camelSettings(row) {
   if (!row) return defaultClinicSettings;
-  return { workingDays: row.working_days || defaultClinicSettings.workingDays, openingTime: String(row.opening_time).slice(0, 5), closingTime: String(row.closing_time).slice(0, 5), daysOff: row.days_off || [] };
+  const workingDays = arraySetting(row.working_days, defaultClinicSettings.workingDays)
+    .map(Number)
+    .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6);
+  const daysOff = arraySetting(row.days_off, []).map(String);
+  return {
+    workingDays: workingDays.length ? [...new Set(workingDays)] : defaultClinicSettings.workingDays,
+    openingTime: String(row.opening_time || defaultClinicSettings.openingTime).slice(0, 5),
+    closingTime: String(row.closing_time || defaultClinicSettings.closingTime).slice(0, 5),
+    daysOff,
+  };
 }
 async function getClinicSettings() {
   const result = await db.query('SELECT working_days, opening_time, closing_time, days_off FROM clinic_settings WHERE id = 1');
@@ -224,14 +245,14 @@ router.get('/availability', async (req, res) => {
   const duration = await requireBookableService(serviceId, dentistId);
   const settings = await getClinicSettings();
   const closedMessage = isClinicOpen(date, settings.openingTime, 0, settings);
-  if (closedMessage) return res.json({ duration, settings, availableTimes: [] });
+  if (closedMessage) return res.json({ duration, settings, availableTimes: [], unavailableReason: closedMessage });
   const result = await db.query("SELECT appointment_time, duration FROM appointments WHERE dentist_id=$1 AND appointment_date=$2 AND status IN ('pending', 'approved') AND ($3::varchar IS NULL OR id <> $3)", [dentistId, date, excludeId || null]);
   const availableTimes = [];
   for (let start = minutes(settings.openingTime); start + duration <= minutes(settings.closingTime); start += 30) {
     const available = !result.rows.some((item) => start < minutes(item.appointment_time) + Number(item.duration) && start + duration > minutes(item.appointment_time));
     if (available) availableTimes.push(`${String(Math.floor(start / 60)).padStart(2, '0')}:${String(start % 60).padStart(2, '0')}`);
   }
-  res.json({ duration, settings, availableTimes });
+  res.json({ duration, settings, availableTimes, unavailableReason: availableTimes.length ? '' : 'This dentist is fully booked on this day' });
 });
 router.get('/profiles', async (req, res) => {
   const result = await db.query(canManageAll(req) ? 'SELECT * FROM patient_profiles ORDER BY created_at DESC' : 'SELECT * FROM patient_profiles WHERE user_id = $1 ORDER BY created_at DESC', canManageAll(req) ? [] : [req.auth.userId]);

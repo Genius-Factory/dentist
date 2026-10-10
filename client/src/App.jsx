@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import Navbar from './components/Navbar'
 import HomePage from './pages/HomePage'
@@ -6,12 +6,10 @@ import SignInPage from './pages/SignInPage'
 import SignUpPage from './pages/SignUpPage'
 import ReservationPage from './pages/ReservationPage'
 import BookedPage from './pages/BookedPage'
-import SecretaryAppointmentsPage from './pages/SecretaryAppointmentsPage'
 import PatientDetailsPage from './pages/PatientDetailsPage'
 import PatientsPage from './pages/PatientsPage'
 import DatabasePage from './pages/DatabasePage'
 import UserRecordsPage from './pages/UserRecordsPage'
-import DentalPageDecor from './components/DentalPageDecor'
 import AdminDashboardPage from './pages/AdminDashboardPage'
 
 function Footer() {
@@ -27,9 +25,12 @@ function Footer() {
 }
 
 export default function App() {
+  const location = useLocation()
+  const isAdminDashboard = location.pathname === '/admin/dashboard'
+
   return (
     <div
-      className="min-h-screen flex flex-col pt-16 md:pl-20 md:pt-0"
+      className="app-shell min-h-screen flex flex-col pt-16 md:pl-20 md:pt-0"
       style={{
         background:
           'radial-gradient(circle at 8% 18%, rgba(125,211,252,0.18), transparent 22%), radial-gradient(circle at 92% 50%, rgba(59,130,246,0.10), transparent 28%), linear-gradient(180deg, #fbfdff 0%, #f7fbff 46%, #ffffff 100%)',
@@ -37,8 +38,7 @@ export default function App() {
     >
       <Toaster position="top-right" />
       <Navbar />
-      <main className="relative mx-auto w-full max-w-7xl flex-1 px-[2px] py-1 sm:px-4 sm:py-6">
-        <DentalPageDecor />
+      <main className={isAdminDashboard ? 'relative w-full flex-1' : 'relative mx-auto w-full max-w-7xl flex-1 px-[2px] py-1 sm:px-4 sm:py-6'}>
         <div className="relative z-10">
           <Routes>
             {/* Public - visible to everyone */}
@@ -51,7 +51,7 @@ export default function App() {
             <Route path="/patients" element={<PatientsPage />} />
             <Route path="/patients/create" element={<PatientDetailsPage forceCreate />} />
             <Route path="/patients/:profileId" element={<PatientDetailsPage />} />
-            <Route path="/secretary/appointments" element={<SecretaryAppointmentsPage />} />
+            <Route path="/secretary/appointments" element={<Navigate to="/booked" replace />} />
             <Route path="/users" element={<UserRecordsPage />} />
             <Route path="/db" element={<DatabasePage />} />
             <Route path="/admin/dashboard" element={<AdminDashboardPage />} />

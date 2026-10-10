@@ -29,14 +29,14 @@ export function RevenueLine({ data }) {
 export function RevenueRing({ segments, total, center, caption, label }) {
   let offset = 0
   return <svg viewBox="0 0 200 200" className="mx-auto w-full max-w-[210px] shrink-0" role="img" aria-label={label}>
-    <circle cx="100" cy="100" r="76" fill="none" stroke="#e2e8f0" strokeWidth="27" />
+    <circle className="revenue-ring-track" cx="100" cy="100" r="76" fill="none" stroke="#e2e8f0" strokeWidth="27" />
     {total > 0 && segments.map((segment, i) => {
       const percent = segment.value / total * 100
       const start = offset
       offset += percent
       return <circle key={i} cx="100" cy="100" r="76" fill="none" stroke={segment.color} strokeWidth="27" pathLength="100" strokeDasharray={`${percent} ${100 - percent}`} strokeDashoffset={-start} transform="rotate(-90 100 100)"><title>{segment.name}: {money(segment.value)} ({percent.toFixed(1)}%)</title></circle>
     })}
-    <text x="100" y="98" textAnchor="middle" fill="#0f172a" fontWeight="700" fontSize={center.length > 12 ? 13 : 20}>{center}</text>
-    <text x="100" y="119" textAnchor="middle" fill="#64748b" fontSize="11">{caption}</text>
+    <text className="revenue-ring-center" x="100" y="98" textAnchor="middle" fill="#0f172a" fontWeight="700" fontSize={center.length > 12 ? 13 : 20}>{center}</text>
+    <text className="revenue-ring-caption" x="100" y="119" textAnchor="middle" fill="#64748b" fontSize="11">{caption}</text>
   </svg>
 }

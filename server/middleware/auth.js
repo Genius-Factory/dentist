@@ -21,8 +21,7 @@ const syncUser = async (req, res, next) => {
   const { userId } = req.auth;
   const clerkUser = await clerkClient.users.getUser(userId);
   const email = clerkUser.emailAddresses[0]?.emailAddress;
-  // Invalid and legacy Clerk metadata (including "librarian") must never
-  // restore a removed role in the application database.
+  // Invalid or legacy Clerk metadata is normalized to a client role.
   const role = normalizeRole(clerkUser.publicMetadata?.role);
   const username = clerkUser.username || clerkUser.publicMetadata?.username || clerkUser.firstName || (email ? email.split('@')[0] : null);
 

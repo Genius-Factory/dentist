@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { ShieldCheck } from 'lucide-react'
 import heroTooth from '../assets/hero-tooth.png'
+import heroToothDark from '../assets/hero-tooth-dark-v2.png'
 
 const stats = [
   { value: '98%', label: 'Patient satisfaction' },
@@ -9,6 +11,19 @@ const stats = [
 ]
 
 export default function HomePage() {
+  const [isDarkTheme, setIsDarkTheme] = useState(() => document.documentElement.dataset.theme === 'dark')
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => setIsDarkTheme(document.documentElement.dataset.theme === 'dark'))
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => observer.disconnect()
+  }, [])
+
+  const heroImage = isDarkTheme ? heroToothDark : heroTooth
+  const heroVeil = isDarkTheme
+    ? 'linear-gradient(90deg, rgba(15,23,42,0.93) 0%, rgba(15,23,42,0.72) 24%, rgba(15,23,42,0.08) 52%, rgba(15,23,42,0.7) 78%, rgba(15,23,42,0.93) 100%)'
+    : 'linear-gradient(90deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.62) 24%, rgba(255,255,255,0.0) 52%, rgba(255,255,255,0.6) 78%, rgba(255,255,255,0.88) 100%)'
+
   return (
     <div className="home-page min-h-full w-screen max-w-none md:w-full">
       <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-1 px-[2px] py-1 sm:gap-8 sm:px-6 sm:py-8 lg:px-8">
@@ -28,11 +43,11 @@ export default function HomePage() {
         <section className="relative z-10 block w-full min-w-0 overflow-hidden rounded-[28px] bg-white shadow-[0_30px_80px_-45px_rgba(14,165,233,0.3)] md:hidden">
           <img
             aria-hidden="true"
-            src={heroTooth}
+            src={heroImage}
             alt=""
             className="absolute inset-x-0 top-0 h-[190px] w-full max-w-none scale-125 object-cover object-center"
           />
-          <div className="absolute inset-x-0 top-0 h-[190px] bg-gradient-to-b from-white/90 via-white/40 to-white/10" />
+          <div className={`absolute inset-x-0 top-0 h-[190px] bg-gradient-to-b ${isDarkTheme ? 'from-slate-950/90 via-slate-950/40 to-slate-950/10' : 'from-white/90 via-white/40 to-white/10'}`} />
 
           <div className="relative z-10 p-5">
             <div className="max-w-[275px]">
@@ -74,7 +89,7 @@ export default function HomePage() {
               top: 40,
               bottom: 40,
               borderRadius: '40px',
-              backgroundImage: `url(${heroTooth})`,
+              backgroundImage: `url(${heroImage})`,
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',
               backgroundSize: 'contain',
@@ -103,7 +118,7 @@ export default function HomePage() {
               top: 40,
               bottom: 40,
               borderRadius: '40px',
-              background: 'linear-gradient(90deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.62) 24%, rgba(255,255,255,0.0) 52%, rgba(255,255,255,0.6) 78%, rgba(255,255,255,0.88) 100%)'
+              background: heroVeil
             }}
           />
           <div className="absolute z-10 h-24 bg-gradient-to-t from-white/45 to-transparent" style={{ left: 40, right: 40, bottom: 40, borderBottomLeftRadius: '40px', borderBottomRightRadius: '40px' }} />
@@ -158,7 +173,7 @@ export default function HomePage() {
             {stats.slice(0, 4).map((stat, index) => (
               <div
                 key={stat.label}
-                className="rounded-[2rem] p-8 text-center transition-transform hover:shadow-lg"
+                className="home-stat-card rounded-[2rem] p-8 text-center transition-transform hover:shadow-lg"
                 style={{
                   backgroundColor: index === 0 ? '#FFFFFF' : index === 1 ? '#F0F9FF' : '#F8FAFC',
                   boxShadow: '0 20px 50px -35px rgba(59, 130, 246, 0.4)',
@@ -176,7 +191,7 @@ export default function HomePage() {
           style={{ display: 'grid', gridTemplateColumns: '7fr 3fr', gap: '24px' }}
         >
           <div
-            className="rounded-[2rem] p-8 flex flex-col justify-center"
+            className="home-content-card rounded-[2rem] p-8 flex flex-col justify-center"
             style={{
               backgroundColor: '#FFFFFF',
               boxShadow: '0 20px 50px -35px rgba(59, 130, 246, 0.4)',
@@ -196,7 +211,7 @@ export default function HomePage() {
           </div>
 
           <div
-            className="rounded-[2rem] p-8 flex flex-col justify-center"
+            className="home-content-card rounded-[2rem] p-8 flex flex-col justify-center"
             style={{
               backgroundColor: '#FFFFFF',
               boxShadow: '0 20px 50px -35px rgba(59, 130, 246, 0.4)',

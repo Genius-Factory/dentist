@@ -2,6 +2,152 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme state is set on <html> by the sidebar control and retained in local storage. */
+html[data-theme='dark'] body {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+html[data-theme='dark'] .app-shell {
+  background: radial-gradient(circle at 8% 18%, rgba(56, 189, 248, 0.13), transparent 22%), radial-gradient(circle at 92% 50%, rgba(59, 130, 246, 0.12), transparent 28%), linear-gradient(180deg, #0f172a 0%, #111827 100%) !important;
+}
+
+html[data-theme='dark'] .bg-white,
+html[data-theme='dark'] .bg-white\/55,
+html[data-theme='dark'] .bg-white\/75,
+html[data-theme='dark'] .bg-white\/80,
+html[data-theme='dark'] .bg-white\/85,
+html[data-theme='dark'] .bg-white\/95,
+html[data-theme='dark'] .bg-gray-50,
+html[data-theme='dark'] .bg-gray-100,
+html[data-theme='dark'] .bg-slate-50,
+html[data-theme='dark'] .bg-slate-100,
+html[data-theme='dark'] .bg-slate-200 {
+  background-color: #1e293b !important;
+}
+
+html[data-theme='dark'] .bg-amber-50,
+html[data-theme='dark'] .bg-amber-50\/80 {
+  background-color: #3b2a0a !important;
+}
+
+html[data-theme='dark'] .bg-emerald-50 {
+  background-color: #073b32 !important;
+}
+
+html[data-theme='dark'] .bg-red-50 {
+  background-color: #450a0a !important;
+}
+
+html[data-theme='dark'] .bg-sky-50,
+html[data-theme='dark'] .bg-sky-50\/80 {
+  background-color: #0c2d48 !important;
+}
+
+html[data-theme='dark'] .border-amber-200 {
+  border-color: #854d0e !important;
+}
+
+html[data-theme='dark'] .border-emerald-200 {
+  border-color: #047857 !important;
+}
+
+html[data-theme='dark'] .border-red-200 {
+  border-color: #991b1b !important;
+}
+
+html[data-theme='dark'] .border-sky-100,
+html[data-theme='dark'] .border-sky-200 {
+  border-color: #075985 !important;
+}
+
+html[data-theme='dark'] .admin-dashboard-page {
+  background-color: #0f172a !important;
+}
+
+html[data-theme='dark'] .desktop-hero {
+  background-color: #1e293b !important;
+}
+
+html[data-theme='dark'] .desktop-hero > div:nth-child(3) {
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.93) 0%, rgba(15, 23, 42, 0.72) 24%, rgba(15, 23, 42, 0.08) 52%, rgba(15, 23, 42, 0.7) 78%, rgba(15, 23, 42, 0.93) 100%) !important;
+}
+
+html[data-theme='dark'] .home-stat-card,
+html[data-theme='dark'] .home-content-card {
+  background-color: #1e293b !important;
+  color: #e2e8f0;
+  box-shadow: 0 20px 50px -35px rgba(56, 189, 248, 0.45) !important;
+}
+
+html[data-theme='dark'] .home-content-card .text-black {
+  color: #f8fafc !important;
+}
+
+aside .sidebar-nav-active,
+aside .sidebar-nav-item:hover {
+  background-color: #ffffff !important;
+  color: #1d4ed8 !important;
+}
+
+/* Keep active and hovered navigation items aligned with the dark page surface. */
+html[data-theme='dark'] aside .sidebar-nav-active,
+html[data-theme='dark'] aside .sidebar-nav-item:hover {
+  background-color: #0f172a !important;
+  color: #1d4ed8 !important;
+}
+
+html[data-theme='dark'] .revenue-ring-track {
+  stroke: #334155 !important;
+}
+
+html[data-theme='dark'] .revenue-ring-center {
+  fill: #f8fafc !important;
+}
+
+html[data-theme='dark'] .revenue-ring-caption {
+  fill: #94a3b8 !important;
+}
+
+html[data-theme='dark'] .border-gray-100,
+html[data-theme='dark'] .border-gray-200,
+html[data-theme='dark'] .border-gray-300 {
+  border-color: #475569 !important;
+}
+
+html[data-theme='dark'] .border-slate-100,
+html[data-theme='dark'] .border-slate-200,
+html[data-theme='dark'] .border-slate-300 {
+  border-color: #475569 !important;
+}
+
+html[data-theme='dark'] .text-gray-900,
+html[data-theme='dark'] .text-gray-800,
+html[data-theme='dark'] .text-gray-700,
+html[data-theme='dark'] .text-gray-600,
+html[data-theme='dark'] .text-gray-500,
+html[data-theme='dark'] .text-gray-400 {
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='dark'] .text-slate-950,
+html[data-theme='dark'] .text-slate-900,
+html[data-theme='dark'] .text-slate-800,
+html[data-theme='dark'] .text-slate-700,
+html[data-theme='dark'] .text-slate-600,
+html[data-theme='dark'] .text-slate-500,
+html[data-theme='dark'] .text-slate-400 {
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='dark'] input,
+html[data-theme='dark'] select,
+html[data-theme='dark'] textarea {
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #475569 !important;
+}
+
 /* Keep phone layouts comfortably compact while preserving the desktop scale. */
 @media (max-width: 767px) {
   body {

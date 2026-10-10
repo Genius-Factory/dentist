@@ -6,6 +6,14 @@ import { installGlobalLogger } from './lib/logger'
 import './index.css'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
+// Apply the saved preference before React renders so themed assets, including
+// the home hero, use the correct version on the first paint. New visitors
+// start in light mode.
+const initialTheme = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light'
+document.documentElement.dataset.theme = initialTheme
+document.documentElement.style.colorScheme = initialTheme
+
 installGlobalLogger()
 
 const root = ReactDOM.createRoot(document.getElementById('root'))

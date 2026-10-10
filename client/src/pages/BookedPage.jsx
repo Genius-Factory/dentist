@@ -7,9 +7,11 @@ import {
   getStatusLabel,
   isArchivedBooking,
   isBookingEditable,
+  isSecretaryRole,
 } from '../lib/bookings'
 import { deleteAppointment, getAppointments, getServices } from '../lib/recordsApi'
 import DatabaseLoading from '../components/DatabaseLoading'
+import SecretaryAppointmentsPage from './SecretaryAppointmentsPage'
 
 function formatCountdown(editableUntil) {
   const remaining = new Date(editableUntil).getTime() - Date.now()
@@ -26,6 +28,16 @@ function formatCountdown(editableUntil) {
 }
 
 export default function BookedPage() {
+  const { user, isLoaded } = useUser()
+
+  if (isLoaded && user && isSecretaryRole(user.publicMetadata?.role)) {
+    return <SecretaryAppointmentsPage />
+  }
+
+  return <ClientBookedPage />
+}
+
+function ClientBookedPage() {
   const navigate = useNavigate()
   const { user, isLoaded } = useUser()
   const { getToken } = useAuth()
@@ -49,7 +61,7 @@ export default function BookedPage() {
         if (appointmentsResult.status === 'fulfilled') setBookings(appointmentsResult.value.filter((booking) => booking.userId === user.id))
         else console.error(appointmentsResult.reason)
         if (servicesResult.status === 'fulfilled') {
-          setServicesById(Object.fromEntries(servicesResult.value.map((service) => [service.id, service.name])))
+          setServicesById(Object.fromEntries(servicesResult.value.map((service) => [service.id, service])))
           setDentistsById(Object.fromEntries(servicesResult.value.flatMap((service) => (service.dentists || []).map((dentist) => [dentist.id, dentist.name]))))
         }
         else console.error(servicesResult.reason)
@@ -154,7 +166,11 @@ export default function BookedPage() {
                       <h2 className="text-base font-semibold text-slate-900">{booking.name}</h2>
                       <p className="text-sm text-slate-500">{booking.date}</p>
                     </div>
-                    <p className="mt-1 truncate text-sm text-slate-600"><span className="font-medium text-slate-700">Service:</span> {serviceLabel(booking, servicesById)}</p>
+                    <div className="mt-1 space-y-1 text-sm text-slate-600">
+                      <p className="truncate"><span className="font-medium text-slate-700">Service:</span> {serviceLabel(booking, servicesById)}</p>
+                      <p><span className="font-medium text-slate-700">Dentist:</span> {dentistLabel(booking, dentistsById)}</p>
+                      <p><span className="font-medium text-slate-700">Price:</span> {priceLabel(booking, servicesById)}</p>
+                    </div>
                   </div>
                   <span className={`w-fit rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClasses(status)}`}>
                     {getStatusLabel(status)}
@@ -185,7 +201,8 @@ export default function BookedPage() {
                       <p><span className="font-medium text-slate-700">Time:</span> {booking.time}</p>
                       <p><span className="font-medium text-slate-700">Duration:</span> {booking.duration} minutes</p>
                       <p><span className="font-medium text-slate-700">Service:</span> {serviceLabel(booking, servicesById)}</p>
-                      <p><span className="font-medium text-slate-700">Dentist:</span> {dentistsById[booking.dentistId || booking.dentist_id] || 'Assigned dentist'}</p>
+                      <p><span className="font-medium text-slate-700">Dentist:</span> {dentistLabel(booking, dentistsById)}</p>
+                      <p><span className="font-medium text-slate-700">Price:</span> {priceLabel(booking, servicesById)}</p>
                     </div>
                   </div>
 
@@ -242,5 +259,14 @@ export default function BookedPage() {
 }
 
 function serviceLabel(booking, servicesById) {
-  return booking.serviceName || servicesById[booking.serviceId || booking.service_id] || 'Service unavailable'
+  return booking.serviceName || servicesById[booking.serviceId || booking.service_id]?.name || 'Service unavailable'
+}
+
+function dentistLabel(booking, dentistsById) {
+  return dentistsById[booking.dentistId || booking.dentist_id] || 'Assigned dentist'
+}
+
+function priceLabel(booking, servicesById) {
+  const price = servicesById[booking.serviceId || booking.service_id]?.price
+  return Number.isFinite(Number(price)) ? Number(price) === 0 ? 'Free' : `$${Number(price).toFixed(2)}` : 'Price unavailable'
 }

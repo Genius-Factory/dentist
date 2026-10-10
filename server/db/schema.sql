@@ -16,9 +16,6 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(255);
 -- Add a unique index for username if it doesn't exist
 CREATE UNIQUE INDEX IF NOT EXISTS users_username_idx ON users(username);
 
--- Safe legacy cleanup: former librarian accounts are normal member accounts.
-UPDATE users SET role = 'client' WHERE role IN ('librarian', 'member');
-
 -- One clinic-wide booking policy, managed from the admin panel.
 CREATE TABLE IF NOT EXISTS clinic_settings (
   id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
