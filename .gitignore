@@ -1,3 +1,4 @@
 # MCP server config contains secrets
 .vscode/mcp.json
 .claude
+/node_modules/

@@ -1,0 +1,10 @@
+{
+  "name": "dentist",
+  "private": true,
+  "scripts": {
+    "local": "concurrently --kill-others --names server,client \"npm --prefix server run dev\" \"npm --prefix client run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.5"
+  }
+}

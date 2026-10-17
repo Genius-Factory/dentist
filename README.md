@@ -22,18 +22,22 @@ Edit [docs/application.md](docs/application.md), then regenerate. Watch mode reb
 
 ## Run locally
 
-Follow the handbook's environment, PostgreSQL, and Clerk setup instructions first. Then use two terminals:
+Follow the handbook's environment, PostgreSQL, and Clerk setup instructions first. Install dependencies from the repository root:
 
 ```powershell
+npm install
 npm --prefix server install
+npm --prefix client install
 npm --prefix server run migrate:billing
-npm --prefix server run dev
 ```
 
+Start both the server and client with one command from the repository root:
+
 ```powershell
-npm --prefix client install
-npm --prefix client run dev
+npm run local
 ```
+
+Press `Ctrl+C` to stop both processes.
 
 The frontend normally runs at `http://localhost:5173`; the backend defaults to `http://localhost:4000`.
 
