@@ -40,6 +40,22 @@ test('revenue includes both endpoints, zero buckets, and the preceding equal per
   assert.equal(empty.averageCents, 0);
 });
 
+test('database aggregates preserve revenue results and support totals above a single charge limit', () => {
+  const period = range('2026-01-01', '2026-01-03');
+  const payments = [
+    { amount: '10.10', received_date: '2026-01-01', service_name: 'Cleaning' },
+    { amount: '20.20', received_date: '2026-01-01', service_name: 'Cleaning' },
+    { amount: '5.00', received_date: '2025-12-31', service_name: 'Cleaning' },
+  ];
+  const aggregated = [
+    { amount_cents: '3030', received_date: '2026-01-01', service_name: 'Cleaning' },
+    { amount_cents: '500', received_date: '2025-12-31', service_name: 'Cleaning' },
+  ];
+  assert.deepEqual(summarizeRevenue(period, aggregated, [{ amount_cents: '5000', collected_cents: '3030' }]),
+    summarizeRevenue(period, payments, [{ amount: '50', collected: '30.30' }]));
+  assert.equal(summarizeRevenue(period, [{ ...aggregated[0], amount_cents: '20000000000' }], []).totalCents, 20000000000);
+});
+
 test('billing API with real PostgreSQL transactions', { skip: process.env.BILLING_TEST_DB !== '1' }, async (t) => {
   require('dotenv').config();
   const { Pool } = require('pg');

@@ -35,13 +35,16 @@ function createBillingRouter(db, { authenticate, syncUser, requireRole }) {
     const period = range(req.query.startDate, req.query.endDate);
     const result = await transaction(async (client) => {
       await client.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
-      const payments = await client.query(`SELECT p.amount, p.received_date::text, c.service_name
+      const payments = await client.query(`SELECT (SUM(p.amount) * 100)::text AS amount_cents, p.received_date::text, c.service_name
         FROM appointment_payments p JOIN appointment_charges c USING (appointment_id)
-        WHERE p.voided_at IS NULL AND p.received_date BETWEEN $1 AND $2`, [period.previousStart, period.end]);
-      const charges = await client.query(`SELECT c.amount, COALESCE(SUM(p.amount),0)::text AS collected
+        WHERE p.voided_at IS NULL AND p.received_date BETWEEN $1 AND $2
+        GROUP BY p.received_date, c.service_name`, [period.previousStart, period.end]);
+      const charges = await client.query(`SELECT (COALESCE(SUM(amount),0) * 100)::text AS amount_cents,
+        (COALESCE(SUM(collected),0) * 100)::text AS collected_cents FROM (
+        SELECT c.amount, COALESCE(SUM(p.amount),0) AS collected
         FROM appointment_charges c LEFT JOIN appointment_payments p
         ON p.appointment_id=c.appointment_id AND p.voided_at IS NULL AND p.received_date <= $2
-        WHERE c.issued_date BETWEEN $1 AND $2 GROUP BY c.appointment_id`, [period.start, period.end]);
+        WHERE c.issued_date BETWEEN $1 AND $2 GROUP BY c.appointment_id) totals`, [period.start, period.end]);
       return summarizeRevenue(period, payments.rows, charges.rows);
     });
     res.json(result);

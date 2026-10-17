@@ -370,8 +370,24 @@ router.delete('/appointments/:id', async (req, res) => {
 
 router.get('/admin/database', requireRole('admin', 'superadmin'), async (req, res) => {
   const tables = await db.query("SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename");
-  const data = await Promise.all(tables.rows.map(async ({ tablename }) => ({ name: tablename, records: (await db.query(`SELECT * FROM ${tablename === 'users' ? 'users' : tablename} ORDER BY 1 DESC`)).rows })));
-  res.json(data);
+  const names = tables.rows.map(({ tablename }) => tablename);
+  const table = req.query.table || names[0];
+  const page = Number(req.query.page || 1);
+  if (!Number.isSafeInteger(page) || page < 1 || page > 1000000) return res.status(400).json({ error: 'Invalid page' });
+  if (!table) return res.json({ tables: names, table: null, records: [], page, hasMore: false });
+  if (!names.includes(table)) return res.status(400).json({ error: 'Unknown table' });
+  // Only allow catalog-listed tables and quote every identifier. Never fetch photo blobs.
+  const quote = (name) => '"' + name.replaceAll('"', '""') + '"';
+  const columns = await db.query(`SELECT column_name FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = $1 AND data_type <> 'bytea'
+    ORDER BY ordinal_position`, [table]);
+  const primaryKey = await db.query(`SELECT a.attname FROM pg_index i
+    JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+    WHERE i.indrelid = $1::regclass AND i.indisprimary ORDER BY a.attnum`, [`public.${quote(table)}`]);
+  const selection = columns.rows.map(({ column_name }) => quote(column_name)).join(', ');
+  const order = primaryKey.rows.length ? primaryKey.rows.map(({ attname }) => `${quote(attname)} DESC`).join(', ') : 'ctid DESC';
+  const result = await db.query(`SELECT ${selection || 'NULL AS empty'} FROM public.${quote(table)} ORDER BY ${order} LIMIT $1 OFFSET $2`, [51, (page - 1) * 50]);
+  res.json({ tables: names, table, records: result.rows.slice(0, 50), page, hasMore: result.rows.length > 50 });
 });
 
 module.exports = router;

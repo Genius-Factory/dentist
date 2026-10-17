@@ -31,15 +31,15 @@ function summarizeRevenue(period, payments, charges) {
   let totalCents = 0;
   let previousCents = 0;
   for (const payment of payments) {
-    const amount = cents(payment.amount);
+    const amount = payment.amount_cents === undefined ? cents(payment.amount) : Number(payment.amount_cents);
     if (payment.received_date >= period.start && payment.received_date <= period.end) {
       totalCents += amount;
       buckets.set(key(payment.received_date), buckets.get(key(payment.received_date)) + amount);
       services.set(payment.service_name, (services.get(payment.service_name) || 0) + amount);
     } else if (payment.received_date >= period.previousStart && payment.received_date <= period.previousEnd) previousCents += amount;
   }
-  const chargedCents = charges.reduce((sum, charge) => sum + cents(charge.amount, true), 0);
-  const collectedCents = charges.reduce((sum, charge) => sum + cents(charge.collected, true), 0);
+  const chargedCents = charges.reduce((sum, charge) => sum + (charge.amount_cents === undefined ? cents(charge.amount, true) : Number(charge.amount_cents)), 0);
+  const collectedCents = charges.reduce((sum, charge) => sum + (charge.collected_cents === undefined ? cents(charge.collected, true) : Number(charge.collected_cents)), 0);
   return {
     ...period, currency: 'USD', totalCents, previousCents,
     averageCents: Math.round(totalCents / buckets.size),
