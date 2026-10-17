@@ -1,238 +1,53 @@
 import { useEffect, useState } from 'react'
-import { ShieldCheck } from 'lucide-react'
+import PropTypes from 'prop-types'
+import { ArrowRight, CalendarDays, CirclePlay, Cross, Heart, MessageCircle, ShieldCheck, Sparkles, UsersRound } from 'lucide-react'
 import heroTooth from '../assets/hero-tooth.png'
 import heroToothDark from '../assets/hero-tooth-dark-v2.png'
+import clinicVisit from '../assets/clinic-visit.png'
 
 const stats = [
-  { value: '98%', label: 'Patient satisfaction' },
-  { value: '1:1', label: 'Personalized care plans' },
-  { value: '24h', label: 'Easy booking access' },
-  { value: '4+', label: 'Core dental services' },
+  { value: '98%', label: 'Patient satisfaction', icon: UsersRound },
+  { value: '1:1', label: 'Personalized care plans', icon: Heart },
+  { value: '24h', label: 'Easy booking access', icon: CalendarDays },
+  { value: '4+', label: 'Core dental services', icon: Cross },
 ]
+const features = [
+  { title: 'Clear communication', copy: 'We explain every step, so you always feel informed and in control.', icon: MessageCircle },
+  { title: 'Gentle treatment', copy: 'Modern, minimally invasive techniques for a more comfortable experience.', icon: Heart },
+  { title: 'Easy online booking', copy: 'Schedule your visit in seconds, whenever it works for you.', icon: CalendarDays },
+]
+const services = [
+  { title: 'General Dentistry', copy: 'Preventive care & cleanings', icon: Cross },
+  { title: 'Cosmetic Dentistry', copy: 'A brighter, more confident you', icon: Sparkles },
+  { title: 'Restorative Dentistry', copy: 'Repair, restore, renew', icon: ShieldCheck },
+  { title: 'Family Dentistry', copy: 'Quality care for all ages', icon: UsersRound },
+]
+
+function Button({ children, secondary = false, className = '', ...props }) {
+  return <a className={`home-button ${secondary ? 'home-button-secondary' : ''} ${className}`} {...props}>{children}</a>
+}
+function SectionEyebrow({ children }) { return <p className="home-eyebrow">{children}</p> }
+
+Button.propTypes = { children: PropTypes.node.isRequired, secondary: PropTypes.bool, className: PropTypes.string }
+SectionEyebrow.propTypes = { children: PropTypes.node.isRequired }
 
 export default function HomePage() {
   const [isDarkTheme, setIsDarkTheme] = useState(() => document.documentElement.dataset.theme === 'dark')
-
   useEffect(() => {
     const observer = new MutationObserver(() => setIsDarkTheme(document.documentElement.dataset.theme === 'dark'))
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
     return () => observer.disconnect()
   }, [])
-
-  const heroImage = isDarkTheme ? heroToothDark : heroTooth
-  const heroVeil = isDarkTheme
-    ? 'linear-gradient(90deg, rgba(15,23,42,0.93) 0%, rgba(15,23,42,0.72) 24%, rgba(15,23,42,0.08) 52%, rgba(15,23,42,0.7) 78%, rgba(15,23,42,0.93) 100%)'
-    : 'linear-gradient(90deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.62) 24%, rgba(255,255,255,0.0) 52%, rgba(255,255,255,0.6) 78%, rgba(255,255,255,0.88) 100%)'
-
   return (
-    <div className="home-page min-h-full w-screen max-w-none md:w-full">
-      <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-1 px-[2px] py-1 sm:gap-8 sm:px-6 sm:py-8 lg:px-8">
-        <div className="relative">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-10 top-14 z-0 hidden h-20 w-72 rotate-[17deg] opacity-75 drop-shadow-2xl md:block md:-right-16 md:top-20 md:h-24 md:w-96"
-          >
-            <div className="absolute inset-[-20%] rounded-full bg-cyan-200/25 blur-3xl" />
-            <div className="absolute left-0 top-1/2 h-7 w-[80%] -translate-y-1/2 rounded-full bg-sky-300 shadow-inner shadow-white/60" />
-            <div className="absolute left-5 top-1/2 h-3 w-[52%] -translate-y-1/2 rounded-full bg-white/80" />
-            <div className="absolute right-0 top-1/2 h-16 w-24 -translate-y-1/2 rounded-2xl bg-white shadow-inner shadow-sky-100" />
-            <div className="absolute right-5 top-1 h-12 w-3 rounded-full bg-cyan-200" />
-            <div className="absolute right-10 top-1 h-12 w-3 rounded-full bg-sky-400" />
-            <div className="absolute right-16 top-1 h-12 w-3 rounded-full bg-cyan-300" />
-          </div>
-        <section className="relative z-10 block w-full min-w-0 overflow-hidden rounded-[28px] bg-white shadow-[0_30px_80px_-45px_rgba(14,165,233,0.3)] md:hidden">
-          <img
-            aria-hidden="true"
-            src={heroImage}
-            alt=""
-            className="absolute inset-x-0 top-0 h-[190px] w-full max-w-none scale-125 object-cover object-center"
-          />
-          <div className={`absolute inset-x-0 top-0 h-[190px] bg-gradient-to-b ${isDarkTheme ? 'from-slate-950/90 via-slate-950/40 to-slate-950/10' : 'from-white/90 via-white/40 to-white/10'}`} />
-
-          <div className="relative z-10 p-5">
-            <div className="max-w-[275px]">
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/85 px-3 py-1.5 text-[8px] font-semibold text-blue-700 shadow-sm backdrop-blur-sm">
-                <ShieldCheck size={14} />
-                Trusted care for your smile
-              </div>
-              <h1 className="mt-4 text-base font-semibold leading-tight text-slate-950">
-                Every smile deserves care,
-              </h1>
-              <p className="mt-3 text-[10px] leading-4 text-slate-700">
-                Gentle dental visits, clear treatment plans, and a calmer way to care for your oral health.
-              </p>
-            </div>
-
-            <div className="mt-[30px]">
-              <p className="text-base font-semibold leading-tight text-slate-950">
-                Yours does too! Book an appointment now at Dentist Clinic!
-              </p>
-              <a
-                href="/reservation"
-                className="mt-5 inline-flex justify-center rounded-full bg-blue-600 px-5 py-2.5 text-[10px] font-semibold text-white shadow-[0_18px_35px_-20px_rgba(37,99,235,0.9)] transition hover:bg-blue-700"
-              >
-                Book now
-              </a>
-            </div>
-          </div>
-        </section>
-
-        <section
-          className="desktop-hero relative z-10 hidden overflow-hidden bg-white md:block"
-          style={{ height: 680, borderRadius: '48px', boxShadow: '0 40px 120px -60px rgba(14,165,233,0.12)' }}
-        >
-          <div
-            className="absolute z-0 overflow-hidden"
-            style={{
-              left: 40,
-              right: 40,
-              top: 40,
-              bottom: 40,
-              borderRadius: '40px',
-              backgroundImage: `url(${heroImage})`,
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-              backgroundSize: 'contain',
-            }}
-            role="img"
-            aria-label="Glossy dental tooth illustration"
-          />
-          {/* soft glow behind the tooth for a gentle blue highlight */}
-          <div
-            className="absolute z-0 pointer-events-none"
-            style={{
-              right: 60,
-              top: 80,
-              width: '44%',
-              height: '80%',
-              borderRadius: '40%',
-              background: 'radial-gradient(60% 60% at 65% 40%, rgba(125,211,252,0.38), rgba(59,130,246,0.12) 40%, transparent 70%)',
-              filter: 'blur(32px)',
-            }}
-          />
-          <div
-            className="absolute z-10"
-            style={{
-              left: 40,
-              right: 40,
-              top: 40,
-              bottom: 40,
-              borderRadius: '40px',
-              background: heroVeil
-            }}
-          />
-          <div className="absolute z-10 h-24 bg-gradient-to-t from-white/45 to-transparent" style={{ left: 40, right: 40, bottom: 40, borderBottomLeftRadius: '40px', borderBottomRightRadius: '40px' }} />
-
-          <div className="relative z-20 h-full">
-            <div
-              className="absolute max-w-[340px]"
-              style={{ left: 150, top: 120 }}
-            >
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
-                <ShieldCheck size={16} />
-                Trusted care for your smile
-              </div>
-
-              <h1 className="mt-7 text-2xl font-semibold leading-tight text-slate-950 sm:text-3xl lg:text-4xl">
-                Every smile deserves care,
-              </h1>
-
-              <p className="mt-4 max-w-[320px] text-base leading-8 text-slate-600 sm:text-lg">
-                Gentle dental visits, clear<br />
-                treatment plans, and a calmer way to<br />
-                care for your oral health.
-              </p>
-            </div>
-
-            <div
-              className="absolute max-w-[300px] text-left"
-              style={{ right: 140, top: 360 }}
-            >
-              <p className="text-2xl font-semibold leading-tight text-slate-950 sm:text-3xl lg:text-4xl">
-                Yours does too! <br />
-                Book an appointment now<br />
-                at Dentist Clinic!
-              </p>
-
-              <div className="mt-8">
-                <a
-                  href="/reservation"
-                  className="inline-flex justify-center rounded-full bg-blue-600 px-6 py-3 text-base font-semibold text-white shadow-[0_18px_35px_-20px_rgba(37,99,235,0.9)] transition hover:bg-blue-700"
-                >
-                  Book now
-                </a>
-              </div>
-            </div>
-          </div>
-        </section>
-        </div>
-
-        <section id="clinic-stats" className="mt-1 rounded-[2rem] p-6 sm:mt-8 sm:p-8 lg:p-10" style={{ boxShadow: '0 30px 90px -55px rgba(59, 130, 246, 0.25)' }}>
-          {/* 2x2 Grid for main stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {stats.slice(0, 4).map((stat, index) => (
-              <div
-                key={stat.label}
-                className="home-stat-card rounded-[2rem] p-8 text-center transition-transform hover:shadow-lg"
-                style={{
-                  backgroundColor: index === 0 ? '#FFFFFF' : index === 1 ? '#F0F9FF' : '#F8FAFC',
-                  boxShadow: '0 20px 50px -35px rgba(59, 130, 246, 0.4)',
-                }}
-              >
-                <p className="text-4xl sm:text-5xl font-bold text-blue-600">{stat.value}</p>
-                <p className="mt-4 text-sm sm:text-base font-medium text-slate-600">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section
-          id="about-clinic"
-          style={{ display: 'grid', gridTemplateColumns: '7fr 3fr', gap: '24px' }}
-        >
-          <div
-            className="home-content-card rounded-[2rem] p-8 flex flex-col justify-center"
-            style={{
-              backgroundColor: '#FFFFFF',
-              boxShadow: '0 20px 50px -35px rgba(59, 130, 246, 0.4)',
-              minHeight: '360px',
-            }}
-          >
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">
-              About our clinic
-            </p>
-            <h2 className="mt-4 text-3xl font-semibold text-black">
-              Thoughtful dentistry with a refined, human touch.
-            </h2>
-            <p className="mt-5 text-base leading-7 text-slate-700">
-              We combine modern techniques with a warm atmosphere so patients
-              feel informed, comfortable, and cared for at every step.
-            </p>
-          </div>
-
-          <div
-            className="home-content-card rounded-[2rem] p-8 flex flex-col justify-center"
-            style={{
-              backgroundColor: '#FFFFFF',
-              boxShadow: '0 20px 50px -35px rgba(59, 130, 246, 0.4)',
-              minHeight: '360px',
-            }}
-          >
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">
-              Why patients choose us
-            </p>
-            <h3 className="mt-4 text-xl font-semibold text-black">
-              Clear communication, careful treatment, and elegant simplicity.
-            </h3>
-            <p className="mt-3 text-sm leading-6 text-slate-700">
-              From preventive care to restorative solutions, we focus on making
-              every visit feel calm and organized.
-            </p>
-          </div>
-        </section>
-
-        
-      </div>
-    </div>
+    <div className="home-page"><div className="home-wrap">
+      <section className="home-hero" aria-labelledby="hero-title">
+        <div className="hero-copy"><div className="trust-chip"><ShieldCheck size={15} /> Trusted care for your smile</div><h1 id="hero-title">Every smile<br />deserves <span>expert care</span></h1><p>Gentle dental visits, clear treatment plans, and a calmer way to care for your oral health. Modern techniques. A warmer experience.</p><div className="hero-actions"><Button href="/reservation">Book now <ArrowRight size={17} /></Button><Button href="#about-clinic" secondary><CirclePlay size={18} /> Watch our video</Button></div></div>
+        <div className="hero-art" aria-hidden="true"><div className="hero-orbit orbit-one" /><div className="hero-orbit orbit-two" /><i className="bubble bubble-one" /><i className="bubble bubble-two" /><i className="leaf leaf-one" /><i className="leaf leaf-two" /><img src={isDarkTheme ? heroToothDark : heroTooth} alt="" /></div>
+        <aside className="appointment-card"><span className="appointment-icon"><CalendarDays size={19} /></span><h2>Book your<br />appointment today</h2><p>A healthier, brighter smile is just a click away.</p><Button href="/reservation">Book now <ArrowRight size={16} /></Button></aside>
+      </section>
+      <section className="stats-panel" aria-label="Clinic statistics">{stats.map(({ value, label, icon: Icon }) => <div className="stat-card" key={label}><span className="stat-icon"><Icon size={25} /></span><div><strong>{value}</strong><p>{label}</p></div></div>)}</section>
+      <div className="home-middle-grid"><section className="about-card" id="about-clinic" aria-labelledby="about-title"><div className="about-copy"><SectionEyebrow>About our clinic</SectionEyebrow><h2 id="about-title">Thoughtful dentistry<br />with a human touch.</h2><p>We combine modern techniques with genuinely compassionate care. Our experienced team takes time to listen, explain, and create a treatment plan that fits your needs — because great dental care is about people, not just procedures.</p><Button href="/reservation">Learn more <ArrowRight size={16} /></Button></div><div className="clinic-photo"><img src={clinicVisit} alt="Dentist providing a gentle examination to a smiling patient" /><span>“A more comfortable dental experience”</span></div></section><section className="why-card" aria-labelledby="why-title"><SectionEyebrow>Why patients choose us</SectionEyebrow><h2 id="why-title">More than a clinic — a better dental experience.</h2><div className="features">{features.map(({ title, copy, icon: Icon }) => <div className="feature" key={title}><span><Icon size={22} /></span><div><h3>{title}</h3><p>{copy}</p></div></div>)}</div></section></div>
+      <section className="services-section" aria-labelledby="services-title"><div className="services-heading"><SectionEyebrow>Our services</SectionEyebrow><h2 id="services-title">Complete care for<br />a healthier, brighter smile.</h2></div><div className="services-list">{services.map(({ title, copy, icon: Icon }) => <article className="service-card" key={title}><span><Icon size={24} /></span><h3>{title}</h3><p>{copy}</p></article>)}</div><a className="view-services" href="#services-title">View all services <ArrowRight size={15} /></a></section>
+    </div></div>
   )
 }

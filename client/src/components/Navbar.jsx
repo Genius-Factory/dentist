@@ -111,7 +111,7 @@ export default function Navbar() {
             setMobileOpen(false)
             navigate('/sign-in')
           }}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-blue transition hover:bg-blue-700"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
         >
           <LogIn size={16} className="shrink-0" />
           <span className={labelClass}>Sign In</span>
