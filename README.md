@@ -2,6 +2,12 @@
 
 React and Express application for patient profiles, appointment requests and approvals, user administration, and database inspection. PostgreSQL stores application data; Clerk handles authentication.
 
+## Services page
+
+The public services catalogue is available at `/services`. It includes eight responsive service cards, category filtering, accessible service-detail dialogs, and links into the appointment flow. The hero image is a project asset at `client/src/assets/services/dental-services-hero.png`.
+
+![Services page hero artwork](client/src/assets/services/dental-services-hero.png)
+
 ## Documentation
 
 Open [the application handbook](docs/index.html) in your browser for the complete setup, user guide, roles, API reference, database schema, operations, and known limitations.
