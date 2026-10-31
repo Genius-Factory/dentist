@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { UserButton, useUser, SignedIn, SignedOut } from '@clerk/clerk-react'
-import { CalendarCheck, Database, Home, LayoutDashboard, LogIn, Menu, Moon, Sun, Users, X } from 'lucide-react'
+import { CalendarCheck, Database, Home, LayoutDashboard, LogIn, Menu, Moon, Sun, Sparkles, Users, X } from 'lucide-react'
 import { isSecretaryRole, normalizeRole } from '../lib/bookings'
 // import { useCart } from '../contexts/CartContext'
 
@@ -41,6 +41,10 @@ export default function Navbar() {
       >
         <Home size={18} className="shrink-0" />
         <span className={labelClass}>Home</span>
+      </Link>
+      <Link to="/services" onClick={() => setMobileOpen(false)} className={`sidebar-nav-item flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${active('/services')}`}>
+        <Sparkles size={18} className="shrink-0" />
+        <span className={labelClass}>Services</span>
       </Link>
       <SignedIn>
         {isAdmin && <Link

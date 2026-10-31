@@ -15,6 +15,12 @@ The application lets signed-in users maintain patient profiles and request denta
 | Administration | Dashboard, services and dentist assignments, username/role changes, user deletion, and database table viewing |
 | Observability | Database health endpoint, structured server logs, browser error collection, and an HTML log viewer |
 
+## Public services catalogue
+
+The public `/services` route presents eight clinic services in a responsive catalogue. It uses one reusable `ServiceCard` component and a local service-data array that requires a title, description, category, duration, starting price, icon, image, and image alt text for each entry. Category buttons filter the cards in place; `All Services` restores the full catalogue. Selecting **Learn more** opens an accessible details dialog, which can be dismissed with its close button, by clicking the backdrop, or by pressing Escape. The appointment and contact actions lead to the existing reservation route.
+
+The layout shows four cards per row on desktop, two on tablet, and one on narrow screens. It also includes a responsive hero, appointment call-to-action, and care-benefit strip. The hero illustration is stored in `client/src/assets/services/dental-services-hero.png`.
+
 There are no implemented treatment-plan, invoice, payment, AI-summary, live dentist-availability, or notification-delivery APIs. Prices are informational; no payment is collected. Photos are stored in PostgreSQL, not S3.
 
 ## Read and regenerate this handbook

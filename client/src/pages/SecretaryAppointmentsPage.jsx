@@ -194,7 +194,7 @@ export default function SecretaryAppointmentsPage() {
                       <h2 className="text-lg font-semibold text-slate-900">{booking.name}</h2>
                       <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusClasses(status)}`}>{getStatusLabel(status)}</span>
                     </div>
-                    <p className="mt-1 text-sm text-slate-500">{booking.date}{booking.time && ` ? ${booking.time}`}</p>
+                    <p className="mt-1 text-sm text-slate-500">{booking.date}{booking.time && ` · ${booking.time}`}</p>
                     <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-slate-600">
                       <span>{serviceLabel(booking, servicesById)}</span>
                       {dentistsById[booking.dentistId || booking.dentist_id] && <span>{dentistLabel(booking, dentistsById)}</span>}
