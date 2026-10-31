@@ -413,3 +413,11 @@ html[data-theme='dark'] .service-filters button.is-active { color: #fff; border-
   .services-hero-copy { padding: 27px 22px 23px; }
   .service-contact-card { width: auto; margin: 0 22px 23px; }
 }
+
+/* Long patient-entered values must wrap instead of widening the panel grid. */
+.patient-details-page { overflow-wrap: anywhere; }
+.patient-details-page :is(td, dd) { min-width: 0; }
+html[data-theme='dark'] .patient-details-page :is(.text-blue-600, a.text-blue-700) { color: #93c5fd; }
+html[data-theme='dark'] .patient-details-page .bg-emerald-50.text-emerald-700 { color: #6ee7b7; }
+html[data-theme='dark'] .patient-details-page .bg-amber-50.text-amber-700 { color: #fcd34d; }
+html[data-theme='dark'] .patient-details-page .bg-red-50.text-red-700 { color: #fca5a5; }
