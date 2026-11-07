@@ -1,26 +1,37 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '@clerk/clerk-react'
 import { Link } from 'react-router-dom'
 import {
-  ArrowRight, Award, BadgeCheck, CalendarDays, Check, ChevronRight, ClipboardCheck,
-  HeartHandshake, ShieldCheck, SmilePlus, Sparkles, Stethoscope, Syringe, X,
+  ArrowRight, BadgeCheck, CalendarDays, Check, ChevronRight, ClipboardCheck,
+  HeartHandshake, LoaderCircle, ShieldCheck, SmilePlus, Sparkles, Stethoscope, Syringe, X,
 } from 'lucide-react'
 import ServiceCard from '../components/ServiceCard'
 import serviceHero from '../assets/services/dental-services-hero.png'
 import clinicVisit from '../assets/clinic-visit.png'
+import { getServices } from '../lib/recordsApi'
 
-const categories = ['All Services', 'Preventive Care', 'Restorative', 'Cosmetic', 'Orthodontics', 'Oral Surgery', 'General Dentistry']
+const categoryIcons = {
+  'Preventive Care': Sparkles, Restorative: ShieldCheck, Cosmetic: SmilePlus,
+  Orthodontics: BadgeCheck, 'Oral Surgery': Syringe, 'General Dentistry': ClipboardCheck,
+}
 
-// An image is intentionally required for every new entry in this catalogue.
-const services = [
-  { id: 'checkup', title: 'Dental Check-up', description: 'A thorough examination designed around your everyday oral health.', details: 'A relaxed, comprehensive visit with a full assessment and practical next steps for your smile.', duration: '30 min', price: 45, category: 'General Dentistry', image: clinicVisit, imageAlt: 'Dentist consulting with a patient during a check-up', icon: ClipboardCheck },
-  { id: 'cleaning', title: 'Teeth Cleaning', description: 'Professional cleaning that leaves your smile feeling refreshed.', details: 'We gently remove plaque and surface buildup, then share simple habits to help maintain your result.', duration: '45 min', price: 65, category: 'Preventive Care', image: serviceHero, imageAlt: 'Dental tools beside a ceramic tooth model', icon: Sparkles },
-  { id: 'whitening', title: 'Teeth Whitening', description: 'A confidence-boosting treatment for a more luminous smile.', details: 'A tailored whitening plan using safe, clinician-guided methods and aftercare recommendations.', duration: '60 min', price: 125, category: 'Cosmetic', image: clinicVisit, imageAlt: 'Smiling patient at a dental clinic', icon: SmilePlus },
-  { id: 'filling', title: 'Tooth Filling', description: 'Restore comfort and function with durable, natural-looking care.', details: 'We carefully treat the affected area and use modern restorative materials matched to your tooth.', duration: '45 min', price: 95, category: 'Restorative', image: serviceHero, imageAlt: 'Ceramic tooth model and dental instruments', icon: ShieldCheck },
-  { id: 'ortho', title: 'Orthodontic Consultation', description: 'Clear guidance for braces, aligners, and your next best step.', details: 'Meet with our team to discuss alignment goals, treatment options, timelines, and suitability.', duration: '40 min', price: 85, category: 'Orthodontics', image: clinicVisit, imageAlt: 'Friendly dental consultation in a clinic', icon: BadgeCheck },
-  { id: 'extraction', title: 'Tooth Extraction', description: 'Considerate, expert removal with your comfort at the center.', details: 'When removal is the right option, we explain the process clearly and support a smooth recovery.', duration: '60 min', price: 155, category: 'Oral Surgery', image: serviceHero, imageAlt: 'Sterile dental treatment instruments', icon: Syringe },
-  { id: 'root-canal', title: 'Root Canal Treatment', description: 'Relieve discomfort and protect your natural tooth where possible.', details: 'Focused restorative treatment to remove infection, protect the tooth structure, and restore function.', duration: '90 min', price: 210, category: 'Restorative', image: serviceHero, imageAlt: 'Dental care tools on a bright clinical surface', icon: Stethoscope },
-  { id: 'veneers', title: 'Dental Veneers', description: 'Refine your smile with custom-crafted cosmetic veneers.', details: 'Explore a personalized veneer plan shaped around your smile, preferences, and long-term oral health.', duration: '60 min', price: 260, category: 'Cosmetic', image: clinicVisit, imageAlt: 'Patient smiling after a dental consultation', icon: Award },
-]
+// The database catalog does not require an image. This local clinic image is deliberately
+// used whenever an entry has no image (or its supplied image cannot be loaded).
+const placeholderServiceImage = clinicVisit
+
+function catalogueService(service) {
+  const name = service.name || 'Dental service'
+  return {
+    ...service,
+    title: name,
+    details: service.description || 'Ask our team about this service and the care options available to you.',
+    duration: `${service.duration} min`,
+    price: Number(service.price) || 0,
+    image: service.imageUrl || service.image || service.photoUrl || service.photo || placeholderServiceImage,
+    imageAlt: service.imageAlt || `${name} dental service`,
+    icon: categoryIcons[service.category] || Stethoscope,
+  }
+}
 
 const highlights = [
   { title: 'Modern technology', copy: 'Precise care with a gentler touch.', icon: Sparkles },
@@ -29,9 +40,23 @@ const highlights = [
 ]
 
 export default function ServicesPage() {
+  const { getToken } = useAuth()
   const [selectedCategory, setSelectedCategory] = useState('All Services')
   const [selectedService, setSelectedService] = useState(null)
+  const [services, setServices] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const categories = ['All Services', ...new Set(services.map((service) => service.category).filter(Boolean))]
   const visibleServices = selectedCategory === 'All Services' ? services : services.filter((service) => service.category === selectedCategory)
+
+  useEffect(() => {
+    let active = true
+    getServices(getToken)
+      .then((items) => active && setServices(items.filter((service) => service.status === 'active').map(catalogueService)))
+      .catch((loadError) => active && setError(loadError.message || 'Could not load services.'))
+      .finally(() => active && setLoading(false))
+    return () => { active = false }
+  }, [getToken])
 
   useEffect(() => {
     const onKeyDown = (event) => event.key === 'Escape' && setSelectedService(null)
@@ -64,7 +89,7 @@ export default function ServicesPage() {
         <div className="service-filters" aria-label="Filter services by category">
           {categories.map((category) => <button type="button" key={category} onClick={() => setSelectedCategory(category)} className={selectedCategory === category ? 'is-active' : ''} aria-pressed={selectedCategory === category}>{category}</button>)}
         </div>
-        {visibleServices.length ? <div className="service-card-grid">{visibleServices.map((service) => <ServiceCard key={service.id} service={service} onLearnMore={setSelectedService} />)}</div> : <div className="services-empty"><SmilePlus size={32} /><h3>No services found</h3><p>Try another category to explore our complete range of care.</p></div>}
+        {loading ? <div className="services-empty"><LoaderCircle className="mx-auto animate-spin" size={32} /><h3>Loading services</h3><p>Getting the clinic's current service catalogue.</p></div> : error ? <div className="services-empty"><SmilePlus size={32} /><h3>Services are unavailable</h3><p>{error}</p></div> : visibleServices.length ? <div className="service-card-grid">{visibleServices.map((service) => <ServiceCard key={service.id} service={service} onLearnMore={setSelectedService} placeholderImage={placeholderServiceImage} />)}</div> : <div className="services-empty"><SmilePlus size={32} /><h3>No services found</h3><p>Try another category to explore our complete range of care.</p></div>}
       </section>
 
       <section className="appointment-banner" aria-labelledby="appointment-title">
