@@ -70,9 +70,9 @@ test('billing API with real PostgreSQL transactions', { skip: process.env.BILLIN
     await admin.query(`CREATE SCHEMA ${schema}`);
     db = new Pool({ ...options, options: `-c search_path=${schema}` });
     await db.query(`CREATE TABLE services(id varchar(255) PRIMARY KEY, name text, price numeric(10,2));
-      CREATE TABLE appointments(id varchar(255) PRIMARY KEY,service_id varchar(255),medical_issue text);
+      CREATE TABLE appointments(id varchar(255) PRIMARY KEY,service_id varchar(255),medical_issue text,service_name_snapshot text,service_price_snapshot numeric(10,2));
       INSERT INTO services VALUES ('clean','Cleaning',100);
-      INSERT INTO appointments VALUES ('a','clean','Cleaning'),('b','clean','Cleaning'),('c','clean','Cleaning'),('d',NULL,'Legacy service');`);
+      INSERT INTO appointments (id,service_id,medical_issue) VALUES ('a','clean','Cleaning'),('b','clean','Cleaning'),('c','clean','Cleaning'),('d',NULL,'Legacy service');`);
     const migration = fs.readFileSync(path.join(__dirname, '../db/billing.sql'), 'utf8');
     await db.query(migration);
     await db.query(migration);

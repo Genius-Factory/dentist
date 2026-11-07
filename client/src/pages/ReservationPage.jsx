@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth, useUser } from '@clerk/clerk-react'
 import toast from 'react-hot-toast'
@@ -14,6 +14,9 @@ const steps = ['Service', 'Dentist', 'Date & Time', 'Patient Details', 'Confirm'
 
 export default function ReservationPage() {
   const { user, isLoaded } = useUser(); const { getToken } = useAuth(); const navigate = useNavigate(); const [params] = useSearchParams(); const editId = params.get('edit')
+  const requestedServiceId = params.get('serviceId')
+  const initializedServiceId = useRef(null)
+  const signInUrl = `/sign-in?redirect_url=${encodeURIComponent(`/reservation${params.size ? `?${params.toString()}` : ''}`)}`
   const [form, setForm] = useState(blank); const [services, setServices] = useState([]); const [profiles, setProfiles] = useState([]); const [availableTimes, setAvailableTimes] = useState([]); const [availabilityLoading, setAvailabilityLoading] = useState(false); const [availabilityReason, setAvailabilityReason] = useState(''); const [clinicSettings, setClinicSettings] = useState(null); const [step, setStep] = useState(1); const [loading, setLoading] = useState(true); const [error, setError] = useState('')
   const service = useMemo(() => services.find((item) => item.id === form.serviceId), [services, form.serviceId])
   const dentist = service?.dentists.find((item) => item.id === form.dentistId)
@@ -21,6 +24,14 @@ export default function ReservationPage() {
   const set = (key, value) => setForm((previous) => ({ ...previous, [key]: value }))
   const load = async () => { setLoading(true); setError(''); try { const [serviceItems, profileItems] = await Promise.all([getServices(getToken), getProfiles(getToken)]); setServices(serviceItems.filter((item) => item.status === 'active')); setProfiles(profileItems) } catch (e) { setError(e.message || 'Unable to load booking options.') } finally { setLoading(false) } }
   useEffect(() => { if (isLoaded && user) load() }, [getToken, isLoaded, user])
+  useEffect(() => {
+    if (loading || error || !user || editId || !requestedServiceId || initializedServiceId.current === requestedServiceId) return
+    initializedServiceId.current = requestedServiceId
+    const requestedService = services.find((item) => item.id === requestedServiceId)
+    if (!requestedService) return
+    setForm((previous) => ({ ...previous, serviceId: requestedService.id, dentistId: '', date: '', time: '', duration: requestedService.duration }))
+    setStep(2)
+  }, [loading, error, user, editId, requestedServiceId, services])
   useEffect(() => { if (!editId || !user) return; getAppointments(getToken).then((items) => { const booking = items.find((item) => item.id === editId && item.userId === user.id); if (booking) setForm({ ...blank, ...booking }) }).catch(() => setError('Unable to load this appointment.')) }, [editId, getToken, user])
   useEffect(() => {
     if (!form.date || !form.serviceId || !form.dentistId) { setAvailableTimes([]); setAvailabilityReason(''); return }
@@ -45,7 +56,7 @@ export default function ReservationPage() {
   const selectProfile = (id) => { const profile = profiles.find((item) => item.id === id); setForm((previous) => ({ ...previous, ...(profile ? profileToBookingFields(profile) : { profileId: '', name: '', dateOfBirth: '' }) })) }
   const submit = async () => { try { const booking = { ...form, id: editId || crypto.randomUUID(), duration: service.duration, status: isSecretaryRole(role) ? 'approved' : 'pending', requestedByRole: role }; if (editId) await updateAppointment(getToken, booking); else await createAppointment(getToken, booking); navigate('/booked') } catch (e) { toast.error(e.message || 'Unable to save appointment.'); if (/unavailable|cannot be booked/i.test(e.message)) { await load(); setStep(1) } } }
   if (!isLoaded || (user && loading)) return <div className="mx-auto max-w-2xl rounded-2xl bg-white p-6 shadow-sm"><DatabaseLoading label="Loading booking options…" className="py-0" /></div>
-  if (!user) return <div className="mx-auto max-w-2xl rounded-2xl bg-white p-8 text-center shadow-sm"><h1 className="text-2xl font-semibold">Sign in to book an appointment</h1><Link to="/sign-in?redirect_url=/reservation" className="mt-5 inline-block rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white">Sign In</Link></div>
+  if (!user) return <div className="mx-auto max-w-2xl rounded-2xl bg-white p-8 text-center shadow-sm"><h1 className="text-2xl font-semibold">Sign in to book an appointment</h1><Link to={signInUrl} className="mt-5 inline-block rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white">Sign In</Link></div>
   if (error) return <div className="mx-auto max-w-2xl rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">{error}<button onClick={load} className="ml-3 font-semibold underline">Retry</button></div>
   return <div className="mx-auto w-full max-w-5xl px-2 py-4 sm:px-6 sm:py-8"><h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">{editId ? 'Edit Appointment' : 'Book an Appointment'}</h1><p className="mt-2 text-slate-600">Choose a service, its dentist, and a time that works for you.</p>
     <ol className="my-6 flex flex-wrap gap-y-2 pb-2">{steps.map((label, index) => <li key={label} className="flex shrink-0 items-center text-xs sm:text-sm"><span className={`flex h-7 w-7 items-center justify-center rounded-full font-semibold ${step >= index + 1 ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-500'}`}>{index + 1}</span><span className="ml-1.5 mr-3 whitespace-nowrap text-slate-600">{label}</span>{index < 4 && <span className="mr-3 h-px w-5 bg-slate-200" />}</li>)}</ol>

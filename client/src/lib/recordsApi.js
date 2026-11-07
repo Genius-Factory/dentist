@@ -53,6 +53,8 @@ export const getAvailability = (getToken, { date, serviceId, dentistId, excludeI
 export const getUsers = (getToken) => request(getToken, '/api/users')
 export const getServices = (getToken) => request(getToken, '/api/services')
 export const getServiceDentists = (getToken) => request(getToken, '/api/services/dentists')
+export const getServiceUsage = (getToken, id) => request(getToken, `/api/services/${encodeURIComponent(id)}/usage`)
+export const transferServiceBookings = (getToken, fromId, targetServiceId) => request(getToken, `/api/services/${encodeURIComponent(fromId)}/transfer`, { method: 'POST', body: JSON.stringify({ targetServiceId }) })
 export const createService = (getToken, service) => request(getToken, '/api/services', { method: 'POST', body: JSON.stringify(service) })
 export const updateService = (getToken, service) => request(getToken, `/api/services/${service.id}`, { method: 'PUT', body: JSON.stringify(service) })
 export const createAppointment = (getToken, appointment) => request(getToken, '/api/records/appointments', { method: 'POST', body: JSON.stringify(appointment) })

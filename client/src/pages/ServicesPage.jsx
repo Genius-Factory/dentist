@@ -89,7 +89,7 @@ export default function ServicesPage() {
         <div className="service-filters" aria-label="Filter services by category">
           {categories.map((category) => <button type="button" key={category} onClick={() => setSelectedCategory(category)} className={selectedCategory === category ? 'is-active' : ''} aria-pressed={selectedCategory === category}>{category}</button>)}
         </div>
-        {loading ? <div className="services-empty"><LoaderCircle className="mx-auto animate-spin" size={32} /><h3>Loading services</h3><p>Getting the clinic's current service catalogue.</p></div> : error ? <div className="services-empty"><SmilePlus size={32} /><h3>Services are unavailable</h3><p>{error}</p></div> : visibleServices.length ? <div className="service-card-grid">{visibleServices.map((service) => <ServiceCard key={service.id} service={service} onLearnMore={setSelectedService} placeholderImage={placeholderServiceImage} />)}</div> : <div className="services-empty"><SmilePlus size={32} /><h3>No services found</h3><p>Try another category to explore our complete range of care.</p></div>}
+        {loading ? <div className="services-empty"><LoaderCircle className="mx-auto animate-spin" size={32} /><h3>Loading services</h3><p>Getting the clinic&apos;s current service catalogue.</p></div> : error ? <div className="services-empty"><SmilePlus size={32} /><h3>Services are unavailable</h3><p>{error}</p></div> : visibleServices.length ? <div className="service-card-grid">{visibleServices.map((service) => <ServiceCard key={service.id} service={service} onLearnMore={setSelectedService} placeholderImage={placeholderServiceImage} />)}</div> : <div className="services-empty"><SmilePlus size={32} /><h3>No services found</h3><p>Try another category to explore our complete range of care.</p></div>}
       </section>
 
       <section className="appointment-banner" aria-labelledby="appointment-title">
@@ -107,7 +107,7 @@ export default function ServicesPage() {
       {selectedService && <div className="service-modal-backdrop" role="presentation" onMouseDown={() => setSelectedService(null)}><section className="service-modal" role="dialog" aria-modal="true" aria-labelledby="service-modal-title" onMouseDown={(event) => event.stopPropagation()}>
         <button type="button" className="service-modal-close" onClick={() => setSelectedService(null)} aria-label="Close service details"><X size={20} /></button>
         <img src={selectedService.image} alt={selectedService.imageAlt} />
-        <div className="service-modal-copy"><p className="section-label">{selectedService.category}</p><h2 id="service-modal-title">{selectedService.title}</h2><p>{selectedService.details}</p><div><span><Check size={17} /> {selectedService.duration}</span><strong>Starting from ${selectedService.price}</strong></div><Link to="/reservation" onClick={() => setSelectedService(null)}>Book this service <ChevronRight size={17} /></Link></div>
+        <div className="service-modal-copy"><p className="section-label">{selectedService.category}</p><h2 id="service-modal-title">{selectedService.title}</h2><p>{selectedService.details}</p><div><span><Check size={17} /> {selectedService.duration}</span><strong>Starting from ${selectedService.price}</strong></div><Link to={`/reservation?serviceId=${encodeURIComponent(selectedService.id)}`} onClick={() => setSelectedService(null)}>Book this service <ChevronRight size={17} /></Link></div>
       </section></div>}
     </div>
   )

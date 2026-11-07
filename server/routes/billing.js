@@ -52,7 +52,7 @@ function createBillingRouter(db, { authenticate, syncUser, requireRole }) {
   router.get('/appointments/:id', staff, wrap(async (req, res) => {
     const data = await transaction(async (client) => {
       await client.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
-      const appointment = await client.query(`SELECT a.id, COALESCE(s.name,a.medical_issue,'Consultation') AS service_name, s.price
+      const appointment = await client.query(`SELECT a.id, COALESCE(a.service_name_snapshot,s.name,a.medical_issue,'Consultation') AS service_name, COALESCE(a.service_price_snapshot,s.price) AS price
         FROM appointments a LEFT JOIN services s ON s.id=a.service_id WHERE a.id=$1`, [req.params.id]);
       if (!appointment.rowCount) throw fail(404, 'Appointment not found');
       const charge = await client.query('SELECT *, issued_date::text FROM appointment_charges WHERE appointment_id=$1', [req.params.id]);
@@ -76,7 +76,7 @@ function createBillingRouter(db, { authenticate, syncUser, requireRole }) {
       }
       const service = await client.query('SELECT name FROM services WHERE id=$1', [appointment.rows[0].service_id]);
       await client.query(`INSERT INTO appointment_charges (appointment_id,amount,service_name,issued_date,created_by)
-        VALUES ($1,$2,$3,$4,$5)`, [req.params.id, amount, service.rows[0]?.name || appointment.rows[0].medical_issue || 'Consultation', issuedDate, req.auth.userId]);
+        VALUES ($1,$2,$3,$4,$5)`, [req.params.id, amount, appointment.rows[0].service_name_snapshot || service.rows[0]?.name || appointment.rows[0].medical_issue || 'Consultation', issuedDate, req.auth.userId]);
     });
     res.status(201).json({ success: true });
   }));

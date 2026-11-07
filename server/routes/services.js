@@ -1,6 +1,8 @@
 const express = require('express');
 const { randomUUID } = require('crypto');
 const db = require('../db');
+const { serviceImage } = require('../lib/serviceImage');
+const { serviceUsage, transferBookings, lockServices } = require('../lib/serviceLifecycle');
 const { authenticate, requireRole, syncUser } = require('../middleware/auth');
 
 const router = express.Router();
@@ -16,7 +18,7 @@ const selectServices = `
 const serviceGroup = ' GROUP BY s.id ORDER BY s.name';
 const camelService = (row) => ({
   id: row.id, name: row.name, category: row.category, description: row.description,
-  duration: Number(row.duration), price: Number(row.price), status: row.status,
+  duration: Number(row.duration), price: Number(row.price), status: row.status, imageUrl: row.image_url || '',
   dentists: row.dentists || [], createdAt: row.created_at, updatedAt: row.updated_at,
 });
 
@@ -31,7 +33,7 @@ function servicePayload(body) {
     const error = new Error('Provide a name, category, description, duration of at least 5 minutes, and a non-negative price'); error.status = 400; throw error;
   }
   if (!['active', 'inactive'].includes(body.status)) { const error = new Error('Invalid service status'); error.status = 400; throw error; }
-  return { name, category, description, duration, price, status: body.status, dentistIds };
+  return { name, category, description, duration, price, status: body.status, dentistIds, imageUrl: serviceImage(body.imageUrl) };
 }
 
 async function replaceDentists(client, serviceId, dentistIds) {
@@ -53,13 +55,29 @@ router.get('/dentists', requireRole('admin', 'superadmin'), async (req, res) => 
   const result = await db.query("SELECT id, COALESCE(username, email) AS name FROM users WHERE role IN ('admin', 'superadmin', 'secretary') ORDER BY name");
   res.json(result.rows);
 });
+router.get('/:id/usage', requireRole('admin', 'superadmin'), async (req, res) => {
+  res.json(await serviceUsage(db, req.params.id));
+});
+router.post('/:id/transfer', requireRole('admin', 'superadmin'), async (req, res) => {
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+    const services = await lockServices(client, [req.params.id, req.body.targetServiceId]);
+    const source = services.find((item) => item.id === req.params.id);
+    if (!source) { const error = new Error('Source service not found'); error.status = 404; throw error; }
+    const target = services.find((item) => item.id === req.body.targetServiceId);
+    const transferred = await transferBookings(client, source, target, req.auth.userId);
+    await client.query('COMMIT');
+    res.json({ transferred });
+  } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
+});
 router.post('/', requireRole('admin', 'superadmin'), async (req, res) => {
   const payload = servicePayload(req.body);
   const client = await db.connect();
   try {
     await client.query('BEGIN');
     const id = randomUUID();
-    await client.query('INSERT INTO services (id, name, category, description, duration, price, status) VALUES ($1, $2, $3, $4, $5, $6, $7)', [id, payload.name, payload.category, payload.description, payload.duration, payload.price, payload.status]);
+    await client.query('INSERT INTO services (id, name, category, description, duration, price, status, image_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)', [id, payload.name, payload.category, payload.description, payload.duration, payload.price, payload.status, payload.imageUrl || '']);
     await replaceDentists(client, id, payload.dentistIds);
     await client.query('COMMIT');
     const result = await db.query(`${selectServices} WHERE s.id = $1${serviceGroup}`, [id]);
@@ -71,7 +89,15 @@ router.put('/:id', requireRole('admin', 'superadmin'), async (req, res) => {
   const client = await db.connect();
   try {
     await client.query('BEGIN');
-    const updated = await client.query('UPDATE services SET name=$1, category=$2, description=$3, duration=$4, price=$5, status=$6, updated_at=NOW() WHERE id=$7 RETURNING id', [payload.name, payload.category, payload.description, payload.duration, payload.price, payload.status, req.params.id]);
+    const services = await lockServices(client, [req.params.id, req.body.transferToServiceId]);
+    const source = services.find((item) => item.id === req.params.id);
+    if (!source) { const error = new Error('Service not found'); error.status = 404; throw error; }
+    if (payload.status === 'inactive') {
+      if (req.body.transferToServiceId) await transferBookings(client, source, services.find((item) => item.id === req.body.transferToServiceId), req.auth.userId);
+      const usage = await serviceUsage(client, source.id);
+      if (usage.upcoming > 0) { const error = new Error(`Transfer the ${usage.upcoming} upcoming appointment(s) to another service before deactivating this service.`); error.status = 409; throw error; }
+    }
+    const updated = await client.query('UPDATE services SET name=$1, category=$2, description=$3, duration=$4, price=$5, status=$6, image_url=COALESCE($8, image_url), updated_at=NOW() WHERE id=$7 RETURNING id', [payload.name, payload.category, payload.description, payload.duration, payload.price, payload.status, req.params.id, payload.imageUrl ?? null]);
     if (!updated.rowCount) { const error = new Error('Service not found'); error.status = 404; throw error; }
     await replaceDentists(client, req.params.id, payload.dentistIds);
     await client.query('COMMIT');
