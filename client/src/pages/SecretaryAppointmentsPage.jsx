@@ -291,11 +291,11 @@ function serviceLabel(booking, servicesById) {
 }
 
 function dentistLabel(booking, dentistsById) {
-  return dentistsById[booking.dentistId || booking.dentist_id] || 'Assigned dentist'
+  return booking.dentistName || dentistsById[booking.dentistId || booking.dentist_id] || 'Assigned dentist'
 }
 
 function priceLabel(booking, servicesById) {
   if (booking.billing?.chargedCents != null) return money(booking.billing.chargedCents)
-  const price = servicesById[booking.serviceId || booking.service_id]?.price
+  const price = booking.servicePrice ?? servicesById[booking.serviceId || booking.service_id]?.price
   return price != null && price !== '' && Number.isFinite(Number(price)) ? Number(price) === 0 ? 'Free' : `$${Number(price).toFixed(2)}` : 'Price unavailable'
 }

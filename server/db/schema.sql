@@ -70,6 +70,8 @@ CREATE TABLE IF NOT EXISTS services (
   created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
 );
 
+ALTER TABLE services ADD COLUMN IF NOT EXISTS image_url TEXT NOT NULL DEFAULT '';
+
 -- A service can be provided by many dentists and a dentist can provide many services.
 CREATE TABLE IF NOT EXISTS service_dentists (
   service_id VARCHAR(255) NOT NULL REFERENCES services(id) ON DELETE CASCADE,

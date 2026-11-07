@@ -268,6 +268,7 @@ export default function PatientDetailsPage({ forceCreate = false }) {
   const [bookings, setBookings] = useState([])
   const [loadingRecords, setLoadingRecords] = useState(true)
   const [selectedId, setSelectedId] = useState(profileId || '')
+  const [expandedArchiveProfileId, setExpandedArchiveProfileId] = useState(null)
   const [mode, setMode] = useState('view')
   const role = user?.publicMetadata?.role || 'client'
   const normalizedRole = normalizeRole(role)
@@ -298,6 +299,8 @@ export default function PatientDetailsPage({ forceCreate = false }) {
   const now = Date.now()
   const activeProfileBookings = profileBookings.filter((booking) => !isArchivedBooking(booking, now))
   const archivedProfileBookings = profileBookings.filter((booking) => isArchivedBooking(booking, now)).reverse()
+  const archivesExpanded = expandedArchiveProfileId === selectedId
+  const visibleArchivedBookings = archivesExpanded ? archivedProfileBookings : archivedProfileBookings.slice(0, 5)
   const upcomingAppointment = activeProfileBookings.find((booking) => appointmentTime(booking) >= now)
 
   const saveProfile = async (form) => {
@@ -492,7 +495,7 @@ export default function PatientDetailsPage({ forceCreate = false }) {
             <Link to="/booked" className="text-sm font-semibold text-blue-600 transition hover:text-blue-700">View Appointments</Link>
           </div>
           <div className="divide-y divide-slate-100 sm:hidden">
-            {archivedProfileBookings.map((booking) => (
+            {visibleArchivedBookings.map((booking) => (
               <article key={booking.id} className="space-y-3 p-4 text-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -502,8 +505,8 @@ export default function PatientDetailsPage({ forceCreate = false }) {
                   <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClasses(getBookingStatus(booking))}`}>{getStatusLabel(getBookingStatus(booking))}</span>
                 </div>
                 <div className="grid gap-3 xs:grid-cols-2">
-                  <div><p className="text-xs font-medium uppercase tracking-wide text-slate-500">Service</p><p className="mt-1 break-words text-slate-700">{booking.medicalIssue}</p></div>
-                  <div><p className="text-xs font-medium uppercase tracking-wide text-slate-500">Dentist</p><p className="mt-1 text-slate-700">Dental Team</p></div>
+                  <div><p className="text-xs font-medium uppercase tracking-wide text-slate-500">Service</p><p className="mt-1 break-words text-slate-700">{booking.serviceName || booking.medicalIssue}</p></div>
+                  <div><p className="text-xs font-medium uppercase tracking-wide text-slate-500">Dentist</p><p className="mt-1 text-slate-700">{booking.dentistName || 'Dental Team'}</p></div>
                 </div>
               </article>
             ))}
@@ -513,11 +516,11 @@ export default function PatientDetailsPage({ forceCreate = false }) {
             <table className="w-full min-w-[560px] table-fixed text-left text-sm">
               <thead className="text-slate-500"><tr><th className="px-6 py-3 font-medium">Date</th><th className="px-6 py-3 font-medium">Service</th><th className="px-6 py-3 font-medium">Dentist</th><th className="px-6 py-3 font-medium">Status</th></tr></thead>
               <tbody className="divide-y divide-slate-100">
-                {archivedProfileBookings.map((booking) => (
+                {visibleArchivedBookings.map((booking) => (
                   <tr key={booking.id}>
                     <td className="px-6 py-3 text-slate-600">{formatDate(booking.date)}</td>
-                    <td className="px-6 py-3 text-slate-700">{booking.medicalIssue}</td>
-                    <td className="px-6 py-3 text-slate-600">Dental Team</td>
+                    <td className="px-6 py-3 text-slate-700">{booking.serviceName || booking.medicalIssue}</td>
+                    <td className="px-6 py-3 text-slate-600">{booking.dentistName || 'Dental Team'}</td>
                     <td className="px-6 py-3"><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClasses(getBookingStatus(booking))}`}>{getStatusLabel(getBookingStatus(booking))}</span></td>
                   </tr>
                 ))}
@@ -525,6 +528,13 @@ export default function PatientDetailsPage({ forceCreate = false }) {
               </tbody>
             </table>
           </div>
+          {archivedProfileBookings.length > 5 && (
+            <div className="border-t border-slate-200 px-4 py-4 sm:px-6">
+              <button type="button" aria-expanded={archivesExpanded} onClick={() => setExpandedArchiveProfileId(archivesExpanded ? null : selectedId)} className="text-sm font-semibold text-blue-600 transition hover:text-blue-700">
+                {archivesExpanded ? 'Show less' : `Show more (${archivedProfileBookings.length - 5})`}
+              </button>
+            </div>
+          )}
         </section>
 
         <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">

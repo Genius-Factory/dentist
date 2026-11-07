@@ -32,6 +32,7 @@ async function main() {
       }
     }
 
+    await pool.query(fs.readFileSync(path.resolve(__dirname, 'service-history.sql'), 'utf8'));
     console.log('Finished applying statements.');
 
     const res = await pool.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name");

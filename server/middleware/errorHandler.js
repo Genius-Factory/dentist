@@ -12,6 +12,7 @@ function notFound(req, res, next) {
 }
 
 function publicStatus(error) {
+  if (error.code === '23514' && /^(This service is unavailable|Transfer upcoming appointments)/.test(error.message)) return 409;
   if (error.type === 'entity.parse.failed') return 400;
   if (error.type === 'entity.too.large') return 413;
   if (error.code === '23505') return 409;
