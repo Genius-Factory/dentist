@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react'
+import { useAuth } from '@clerk/clerk-react'
+import { getServices } from '../lib/recordsApi'
 import { Link } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import {
@@ -17,11 +20,6 @@ const clinic = {
     { value: 'Demo 4.9/5', label: 'patient feedback', icon: Star },
     { value: 'Demo 12 years', label: 'serving our community', icon: CalendarDays },
     { value: '4 care areas', label: 'specialized services', icon: Stethoscope },
-  ],
-  doctors: [
-    { id: 'demo-ava', name: 'Dr. Ava Morgan', specialty: 'General & family dentistry', focus: 'Gentle care for every stage of life', imagePosition: '24% center' },
-    { id: 'demo-noah', name: 'Dr. Noah Bennett', specialty: 'Restorative dentistry', focus: 'Clear plans, confident smiles', imagePosition: '45% center' },
-    { id: 'demo-maya', name: 'Dr. Maya Patel', specialty: 'Cosmetic dentistry', focus: 'Natural looking smile design', imagePosition: '70% center' },
   ],
 }
 
@@ -54,8 +52,8 @@ function StatCard({ item }) {
 
 function DoctorCard({ doctor }) {
   return <article className="doctor-card">
-    <img src={clinicVisit} alt={`Demo portrait placeholder for ${doctor.name}`} style={{ objectPosition: doctor.imagePosition }} />
-    <div><p>{doctor.specialty}</p><h3>{doctor.name}</h3><span>{doctor.focus}</span><Link to="/reservation" aria-label={`Book an appointment with ${doctor.name}`}>View profile <ArrowRight size={14} /></Link></div>
+    <div className="doctor-avatar" aria-hidden="true"><Stethoscope size={36} /></div>
+    <div><p>Dentist</p><h3>{doctor.name}</h3><span>{doctor.services.join(', ')}</span><Link to="/reservation">Book appointment <ArrowRight size={14} /></Link></div>
   </article>
 }
 
@@ -65,10 +63,36 @@ function TestimonialCard({ testimonial }) {
 
 Eyebrow.propTypes = { children: PropTypes.node.isRequired }
 StatCard.propTypes = { item: PropTypes.shape({ value: PropTypes.string.isRequired, label: PropTypes.string.isRequired, icon: PropTypes.elementType.isRequired }).isRequired }
-DoctorCard.propTypes = { doctor: PropTypes.shape({ name: PropTypes.string.isRequired, specialty: PropTypes.string.isRequired, focus: PropTypes.string.isRequired, imagePosition: PropTypes.string.isRequired }).isRequired }
+DoctorCard.propTypes = { doctor: PropTypes.shape({ name: PropTypes.string.isRequired, services: PropTypes.arrayOf(PropTypes.string).isRequired }).isRequired }
 TestimonialCard.propTypes = { testimonial: PropTypes.shape({ quote: PropTypes.string.isRequired, name: PropTypes.string.isRequired, initials: PropTypes.string.isRequired }).isRequired }
 
 export default function AboutPage() {
+  const { getToken, isLoaded, isSignedIn } = useAuth()
+  const [doctors, setDoctors] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return
+    let active = true
+    setLoading(true)
+    setError('')
+    getServices(getToken).then((services) => {
+      const team = new Map()
+      for (const service of services.filter((item) => item.status === 'active')) {
+        for (const dentist of service.dentists || []) {
+          if (!team.has(dentist.id)) team.set(dentist.id, { ...dentist, services: [] })
+          const assignedServices = team.get(dentist.id).services
+          if (!assignedServices.includes(service.name)) assignedServices.push(service.name)
+        }
+      }
+      if (active) setDoctors([...team.values()].sort((a, b) => a.name.localeCompare(b.name)))
+    }).catch(() => {
+      if (active) setError('Unable to load our team. Please try again later.')
+    }).finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [getToken, isLoaded, isSignedIn])
+
   return (
     <div className="about-page">
       <section className="about-hero" aria-labelledby="about-hero-title">
@@ -84,7 +108,7 @@ export default function AboutPage() {
       </section>
 
       <section className="team-reasons" id="team">
-        <article className="team-panel"><div className="team-intro"><Eyebrow>Meet our team</Eyebrow><h2>Expert care from people who care.</h2><p>These demo profiles show how each clinic can manage its own team, specialties, and booking links.</p><Link to="/services" className="about-text-link">View all doctors <ArrowRight size={15} /></Link></div><div className="doctor-grid">{clinic.doctors.map((doctor) => <DoctorCard key={doctor.id} doctor={doctor} />)}</div></article>
+        <article className="team-panel"><div className="team-intro"><Eyebrow>Meet our team</Eyebrow><h2>Expert care from people who care.</h2><p>Meet the dentists providing our services and find the care that fits your needs.</p><Link to="/services" className="about-text-link">Explore our services <ArrowRight size={15} /></Link></div><div className="doctor-grid">{!isLoaded ? <p role="status">Loading our team?</p> : !isSignedIn ? <p><Link to="/sign-in?redirect_url=%2Fabout">Sign in to meet our dentists</Link></p> : loading ? <p role="status">Loading our team?</p> : error ? <p role="alert">{error}</p> : doctors.length ? doctors.map((doctor) => <DoctorCard key={doctor.id} doctor={doctor} />) : <p>No dentists are available for booking right now.</p>}</div></article>
         <article className="reasons-panel"><Eyebrow>Why choose us</Eyebrow><h2>More than a clinic — a better experience.</h2><p>From the first booking to continued care, our focus stays on making oral health feel more manageable.</p><ul>{reasons.map((reason) => <li key={reason}><Check size={16} />{reason}</li>)}</ul><Link to="/reservation" className="about-text-link">Start with an appointment <ArrowRight size={15} /></Link></article>
       </section>
 
