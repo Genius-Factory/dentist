@@ -12,6 +12,7 @@ import DatabasePage from './pages/DatabasePage'
 import UserRecordsPage from './pages/UserRecordsPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
 import ServicesPage from './pages/ServicesPage'
+import AboutPage from './pages/AboutPage'
 
 function Footer() {
   return (
@@ -45,6 +46,7 @@ export default function App() {
             {/* Public - visible to everyone */}
             <Route path="/" element={<HomePage />} />
             <Route path="/services" element={<ServicesPage />} />
+            <Route path="/about" element={<AboutPage />} />
             <Route path="/sign-in" element={<SignInPage />} />
             <Route path="/sign-up" element={<SignUpPage />} />
             <Route path="/reservation" element={<ReservationPage />} />

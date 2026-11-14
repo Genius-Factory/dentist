@@ -6,8 +6,8 @@ export default function SignUpPage() {
   const redirectUrl = searchParams.get('redirect_url') || '/'
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center w-full max-w-md px-4">
+    <div className="auth-page min-h-screen flex items-center justify-center">
+      <div className="auth-panel text-center w-full max-w-md px-4 py-10">
         <h1 className="text-3xl font-bold text-blue-700 mb-2"> Dentist</h1>
         <p className="text-gray-500 mb-8">Create your account</p>
         <SignUp afterSignUpUrl={redirectUrl} />
