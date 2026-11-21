@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@clerk/clerk-react'
-import { getServices } from '../lib/recordsApi'
+import { getTeam } from '../lib/recordsApi'
 import { Link } from 'react-router-dom'
+import DentistProfile from '../components/DentistProfile'
 import PropTypes from 'prop-types'
 import {
   ArrowRight, CalendarDays, Check, CirclePlay, HeartHandshake, ShieldCheck,
@@ -52,8 +53,9 @@ function StatCard({ item }) {
 
 function DoctorCard({ doctor }) {
   return <article className="doctor-card">
-    <div className="doctor-avatar" aria-hidden="true"><Stethoscope size={36} /></div>
-    <div><p>Dentist</p><h3>{doctor.name}</h3><span>{doctor.services.join(', ')}</span><Link to="/reservation">Book appointment <ArrowRight size={14} /></Link></div>
+    <div><h3>{doctor.name}</h3><DentistProfile doctor={doctor} /><span>{doctor.services.join(', ')}</span>
+      {doctor.services.length > 0 && <Link to={`/reservation?dentistId=${encodeURIComponent(doctor.id)}`}>Book appointment <ArrowRight size={14} /></Link>}
+    </div>
   </article>
 }
 
@@ -63,7 +65,7 @@ function TestimonialCard({ testimonial }) {
 
 Eyebrow.propTypes = { children: PropTypes.node.isRequired }
 StatCard.propTypes = { item: PropTypes.shape({ value: PropTypes.string.isRequired, label: PropTypes.string.isRequired, icon: PropTypes.elementType.isRequired }).isRequired }
-DoctorCard.propTypes = { doctor: PropTypes.shape({ name: PropTypes.string.isRequired, services: PropTypes.arrayOf(PropTypes.string).isRequired }).isRequired }
+DoctorCard.propTypes = { doctor: PropTypes.shape({ id: PropTypes.string.isRequired, name: PropTypes.string.isRequired, services: PropTypes.arrayOf(PropTypes.string).isRequired }).isRequired }
 TestimonialCard.propTypes = { testimonial: PropTypes.shape({ quote: PropTypes.string.isRequired, name: PropTypes.string.isRequired, initials: PropTypes.string.isRequired }).isRequired }
 
 export default function AboutPage() {
@@ -77,16 +79,8 @@ export default function AboutPage() {
     let active = true
     setLoading(true)
     setError('')
-    getServices(getToken).then((services) => {
-      const team = new Map()
-      for (const service of services.filter((item) => item.status === 'active')) {
-        for (const dentist of service.dentists || []) {
-          if (!team.has(dentist.id)) team.set(dentist.id, { ...dentist, services: [] })
-          const assignedServices = team.get(dentist.id).services
-          if (!assignedServices.includes(service.name)) assignedServices.push(service.name)
-        }
-      }
-      if (active) setDoctors([...team.values()].sort((a, b) => a.name.localeCompare(b.name)))
+    getTeam(getToken).then((team) => {
+      if (active) setDoctors(team)
     }).catch(() => {
       if (active) setError('Unable to load our team. Please try again later.')
     }).finally(() => { if (active) setLoading(false) })

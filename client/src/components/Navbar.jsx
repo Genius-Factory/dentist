@@ -51,14 +51,14 @@ export default function Navbar() {
         <span className={labelClass}>About Us</span>
       </Link>
       <SignedIn>
-        {(isAdmin || isSecretary) && <Link
+        <Link
           to="/doctors"
           onClick={() => setMobileOpen(false)}
           className={`sidebar-nav-item flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${loc.pathname.startsWith('/doctors') ? 'sidebar-nav-active bg-blue text-blue-700 font-semibold' : 'text-gray-600 hover:bg-blue hover:text-blue-700'}`}
         >
           <Stethoscope size={18} className="shrink-0" />
           <span className={labelClass}>Doctors</span>
-        </Link>}
+        </Link>
         {isAdmin && <Link
           to="/admin/dashboard"
           onClick={() => setMobileOpen(false)}

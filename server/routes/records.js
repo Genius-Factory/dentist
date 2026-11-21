@@ -1,3 +1,4 @@
+const { directory } = require('../lib/dentistDirectory');
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
@@ -38,7 +39,7 @@ const camelProfile = (row) => ({
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
-const camelAppointment = (row) => ({ ...row, userId: row.user_id, profileId: row.profile_id, serviceId: row.service_id, serviceName: row.service_name_snapshot || row.service_name || '', servicePrice: row.service_price_snapshot, dentistName: row.dentist_name_snapshot || '', dentistId: row.dentist_id, dateOfBirth: dateOnly(row.date_of_birth), guardianContact: row.guardian_contact, medicalIssue: row.medical_issue, emergencyLevel: row.emergency_level, date: dateOnly(row.appointment_date), time: String(row.appointment_time).slice(0, 5), requestedByRole: row.requested_by_role, editableUntil: row.editable_until, approvedAt: row.approved_at, approvedBy: row.approved_by, declinedAt: row.declined_at, declinedBy: row.declined_by, createdAt: row.created_at, updatedAt: row.updated_at });
+const camelAppointment = (row) => ({ ...row, userId: row.user_id, profileId: row.profile_id, serviceId: row.service_id, serviceName: row.service_name_snapshot || row.service_name || '', servicePrice: row.service_price_snapshot, dentistName: row.dentist_name_snapshot || '', dentistId: row.dentist_id ?? row.doctor_id, dateOfBirth: dateOnly(row.date_of_birth), guardianContact: row.guardian_contact, medicalIssue: row.medical_issue, emergencyLevel: row.emergency_level, date: dateOnly(row.appointment_date), time: String(row.appointment_time).slice(0, 5), requestedByRole: row.requested_by_role, editableUntil: row.editable_until, approvedAt: row.approved_at, approvedBy: row.approved_by, declinedAt: row.declined_at, declinedBy: row.declined_by, createdAt: row.created_at, updatedAt: row.updated_at });
 const canManageAll = (req) => ['superadmin', 'admin', 'secretary'].includes(req.userRole);
 const ownOrStaff = (req, userId) => canManageAll(req) || userId === req.auth.userId;
 const allowedProfilePictureTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
@@ -107,7 +108,7 @@ async function ensureAppointmentAvailable({ date, time, duration, dentistId, exc
   if (closedMessage) throw appointmentError(400, closedMessage);
   const result = await db.query(
     `SELECT id FROM appointments
-     WHERE dentist_id = $1 AND appointment_date = $2 AND status IN ('pending', 'approved')
+     WHERE COALESCE(dentist_id, doctor_id::text) = $1 AND appointment_date = $2 AND status IN ('pending', 'approved')
        AND ($3::time < appointment_time + (duration || ' minutes')::interval)
        AND ($3::time + ($4 || ' minutes')::interval > appointment_time)
        AND ($5::varchar IS NULL OR id <> $5) LIMIT 1`,
@@ -140,12 +141,12 @@ async function requireUsableProfile(req, profileId) {
 async function requireBookableService(serviceId, dentistId) {
   if (!serviceId || !dentistId) throw appointmentError(400, 'An active service and one of its dentists are required');
   const result = await db.query(
-    `SELECT s.duration FROM services s JOIN service_dentists sd ON sd.service_id = s.id
-     WHERE s.id = $1 AND sd.dentist_id = $2 AND s.status = 'active'`,
+    `SELECT s.duration, p.doctor_id, p.user_id FROM services s JOIN (${directory}) p ON p.service_ids ? s.id
+     WHERE s.id = $1 AND p.id = $2 AND s.status = 'active'`,
     [serviceId, dentistId]
   );
   if (!result.rowCount) throw appointmentError(400, 'This service is unavailable or cannot be booked with that dentist');
-  return Number(result.rows[0].duration);
+  return result.rows[0];
 }
 
 function appointmentValues(body, existing, req) {
@@ -243,11 +244,11 @@ router.put('/settings', requireRole('admin', 'superadmin'), async (req, res) => 
 router.get('/availability', async (req, res) => {
   const { date, dentistId, serviceId, excludeId } = req.query;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '') || !dentistId || !serviceId) throw appointmentError(400, 'Date, service, and dentist are required');
-  const duration = await requireBookableService(serviceId, dentistId);
+  const { duration } = await requireBookableService(serviceId, dentistId);
   const settings = await getClinicSettings();
   const closedMessage = isClinicOpen(date, settings.openingTime, 0, settings);
   if (closedMessage) return res.json({ duration, settings, availableTimes: [], unavailableReason: closedMessage });
-  const result = await db.query("SELECT appointment_time, duration FROM appointments WHERE dentist_id=$1 AND appointment_date=$2 AND status IN ('pending', 'approved') AND ($3::varchar IS NULL OR id <> $3)", [dentistId, date, excludeId || null]);
+  const result = await db.query("SELECT appointment_time, duration FROM appointments WHERE COALESCE(dentist_id, doctor_id::text)=$1 AND appointment_date=$2 AND status IN ('pending', 'approved') AND ($3::varchar IS NULL OR id <> $3)", [dentistId, date, excludeId || null]);
   const availableTimes = [];
   for (let start = minutes(settings.openingTime); start + duration <= minutes(settings.closingTime); start += 30) {
     const available = !result.rows.some((item) => start < minutes(item.appointment_time) + Number(item.duration) && start + duration > minutes(item.appointment_time));
@@ -328,10 +329,12 @@ router.post('/appointments', async (req, res) => {
   if (!id) return res.status(400).json({ error: 'Appointment ID is required' });
   validateFutureAppointment(req.body.date, req.body.time);
   await requireUsableProfile(req, req.body.profileId);
-  req.body.duration = await requireBookableService(req.body.serviceId, req.body.dentistId);
+  const provider = await requireBookableService(req.body.serviceId, req.body.dentistId);
+  req.body.duration = Number(provider.duration);
   await ensureAppointmentAvailable({ ...req.body });
   const values = appointmentValues(req.body, null, req);
-  const result = await db.query(`INSERT INTO appointments (id, user_id, ${appointmentDbColumns.join(', ')}) VALUES ($1, $2, ${appointmentColumns.map((_, i) => `$${i + 3}`).join(', ')}) RETURNING *`, [id, req.auth.userId, ...values]);
+  values[appointmentColumns.indexOf('dentistId')] = provider.user_id;
+  const result = await db.query(`INSERT INTO appointments (id, user_id, doctor_id, ${appointmentDbColumns.join(', ')}) VALUES ($1, $2, $3, ${appointmentColumns.map((_, i) => `$${i + 4}`).join(', ')}) RETURNING *`, [id, req.auth.userId, provider.doctor_id, ...values]);
   res.status(201).json(camelAppointment(result.rows[0]));
 });
 router.put('/appointments/:id', async (req, res) => {
@@ -343,11 +346,13 @@ router.put('/appointments/:id', async (req, res) => {
   const time = req.body.time ?? String(existing.rows[0].appointment_time).slice(0, 5);
   validateFutureAppointment(date, time);
   await requireUsableProfile(req, req.body.profileId ?? existing.rows[0].profile_id);
-  req.body.duration = await requireBookableService(req.body.serviceId ?? existing.rows[0].service_id, req.body.dentistId ?? existing.rows[0].dentist_id);
-  await ensureAppointmentAvailable({ date, time, duration: req.body.duration, dentistId: req.body.dentistId ?? existing.rows[0].dentist_id, excludeId: existing.rows[0].id });
+  const provider = await requireBookableService(req.body.serviceId ?? existing.rows[0].service_id, req.body.dentistId ?? existing.rows[0].dentist_id ?? existing.rows[0].doctor_id);
+  req.body.duration = Number(provider.duration);
+  await ensureAppointmentAvailable({ date, time, duration: req.body.duration, dentistId: req.body.dentistId ?? existing.rows[0].dentist_id ?? existing.rows[0].doctor_id, excludeId: existing.rows[0].id });
   const values = appointmentValues(req.body, existing.rows[0], req);
+  values[appointmentColumns.indexOf('dentistId')] = provider.user_id;
   const assignments = appointmentDbColumns.map((column, i) => `${column} = $${i + 1}`).join(', ');
-  const result = await db.query(`UPDATE appointments SET ${assignments}, updated_at = NOW() WHERE id = $${values.length + 1} RETURNING *`, [...values, req.params.id]);
+  const result = await db.query(`UPDATE appointments SET ${assignments}, doctor_id = $${values.length + 1}, updated_at = NOW() WHERE id = $${values.length + 2} RETURNING *`, [...values, provider.doctor_id, req.params.id]);
   res.json(camelAppointment(result.rows[0]));
 });
 router.delete('/appointments/:id', async (req, res) => {

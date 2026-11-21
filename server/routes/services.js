@@ -8,18 +8,18 @@ const { authenticate, requireRole, syncUser } = require('../middleware/auth');
 const router = express.Router();
 const adminRoles = ['admin', 'superadmin'];
 
+const { directory, patientFields } = require('../lib/dentistDirectory');
 const selectServices = `
-  SELECT s.*, COALESCE(json_agg(json_build_object('id', u.id, 'name', COALESCE(u.username, u.email))
-    ORDER BY COALESCE(u.username, u.email)) FILTER (WHERE u.id IS NOT NULL), '[]'::json) AS dentists
+  SELECT s.*, (SELECT COALESCE(json_agg(roster ORDER BY roster.name), '[]')
+    FROM (SELECT ${patientFields} FROM (${directory}) p WHERE p.service_ids ? s.id) roster) AS dentists,
+    ARRAY(SELECT id FROM doctors WHERE service_ids ? s.id) AS doctor_ids
   FROM services s
-  LEFT JOIN service_dentists sd ON sd.service_id = s.id
-  LEFT JOIN users u ON u.id = sd.dentist_id
 `;
-const serviceGroup = ' GROUP BY s.id ORDER BY s.name';
+const serviceGroup = ' ORDER BY s.name';
 const camelService = (row) => ({
   id: row.id, name: row.name, category: row.category, description: row.description,
   duration: Number(row.duration), price: Number(row.price), status: row.status, imageUrl: row.image_url || '',
-  dentists: row.dentists || [], createdAt: row.created_at, updatedAt: row.updated_at,
+  assignedDoctorIds: row.doctor_ids, dentists: row.dentists || [], createdAt: row.created_at, updatedAt: row.updated_at,
 });
 
 function servicePayload(body) {
@@ -28,7 +28,7 @@ function servicePayload(body) {
   const description = String(body.description || '').trim();
   const duration = Number(body.duration);
   const price = Number(body.price);
-  const dentistIds = [...new Set(Array.isArray(body.dentistIds) ? body.dentistIds.filter(Boolean) : [])];
+  const dentistIds = body.dentistIds === undefined ? undefined : [...new Set(Array.isArray(body.dentistIds) ? body.dentistIds.filter(Boolean) : [])];
   if (!name || !category || !description || !Number.isInteger(duration) || duration < 5 || !Number.isFinite(price) || price < 0) {
     const error = new Error('Provide a name, category, description, duration of at least 5 minutes, and a non-negative price'); error.status = 400; throw error;
   }
@@ -37,12 +37,21 @@ function servicePayload(body) {
 }
 
 async function replaceDentists(client, serviceId, dentistIds) {
+  if (dentistIds === undefined) return;
+  // Serialize assignment changes with profile edits and other service saves.
+  await client.query('SELECT id FROM doctors ORDER BY id FOR UPDATE');
   if (dentistIds.length) {
-    const users = await client.query("SELECT id FROM users WHERE id = ANY($1::varchar[]) AND role IN ('admin', 'superadmin', 'secretary')", [dentistIds]);
-    if (users.rowCount !== dentistIds.length) { const error = new Error('Each assigned dentist must be an active staff user'); error.status = 400; throw error; }
+    const doctors = await client.query('SELECT id FROM doctors WHERE id::text = ANY($1::text[])', [dentistIds]);
+    if (doctors.rowCount !== dentistIds.length) {
+      const error = new Error('Choose doctors from the doctor directory');
+      error.status = 400;
+      throw error;
+    }
   }
-  await client.query('DELETE FROM service_dentists WHERE service_id = $1', [serviceId]);
-  for (const dentistId of dentistIds) await client.query('INSERT INTO service_dentists (service_id, dentist_id) VALUES ($1, $2)', [serviceId, dentistId]);
+  await client.query(`UPDATE doctors SET service_ids =
+    CASE WHEN id::text = ANY($2::text[]) THEN (service_ids - $1::text) || jsonb_build_array($1::text)
+      ELSE service_ids - $1::text END, updated_at=NOW()
+    WHERE service_ids ? $1 OR id::text = ANY($2::text[])`, [serviceId, dentistIds]);
 }
 
 router.use(authenticate, syncUser);
@@ -51,8 +60,15 @@ router.get('/', async (req, res) => {
   const result = await db.query(`${selectServices}${isAdmin ? '' : " WHERE s.status = 'active'"}${serviceGroup}`);
   res.json(result.rows.map(camelService));
 });
+router.get('/team', async (req, res) => {
+  const result = await db.query(`SELECT ${patientFields}, p.doctor_id AS "doctorId", ARRAY(SELECT DISTINCT s.name FROM services s
+    WHERE s.status='active' AND p.service_ids ? s.id ORDER BY s.name) AS services
+    FROM (${directory}) p
+    ORDER BY p.name, p.id`);
+  res.json(result.rows);
+});
 router.get('/dentists', requireRole('admin', 'superadmin'), async (req, res) => {
-  const result = await db.query("SELECT id, COALESCE(username, email) AS name FROM users WHERE role IN ('admin', 'superadmin', 'secretary') ORDER BY name");
+  const result = await db.query("SELECT id, concat_ws(' ',first_name,last_name) AS name, status FROM doctors ORDER BY name");
   res.json(result.rows);
 });
 router.get('/:id/usage', requireRole('admin', 'superadmin'), async (req, res) => {

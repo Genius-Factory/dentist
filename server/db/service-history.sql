@@ -40,8 +40,12 @@ BEGIN
     NEW.service_price_snapshot := OLD.service_price_snapshot;
     NEW.duration := OLD.duration;
   END IF;
-  IF TG_OP = 'INSERT' OR NEW.dentist_id IS DISTINCT FROM OLD.dentist_id THEN
-    SELECT COALESCE(username, email) INTO NEW.dentist_name_snapshot FROM users WHERE id = NEW.dentist_id;
+  IF TG_OP = 'INSERT' OR NEW.dentist_id IS DISTINCT FROM OLD.dentist_id OR NEW.doctor_id IS DISTINCT FROM OLD.doctor_id THEN
+    IF NEW.doctor_id IS NOT NULL THEN
+      SELECT concat_ws(' ', first_name, last_name) INTO NEW.dentist_name_snapshot FROM doctors WHERE id = NEW.doctor_id;
+    ELSE
+      SELECT COALESCE(username, email) INTO NEW.dentist_name_snapshot FROM users WHERE id = NEW.dentist_id;
+    END IF;
   ELSE
     NEW.dentist_name_snapshot := OLD.dentist_name_snapshot;
   END IF;

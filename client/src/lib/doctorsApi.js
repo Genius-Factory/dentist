@@ -11,3 +11,4 @@ export const createDoctor = (getToken, body) => request(getToken, '/api/doctors'
 export const updateDoctor = (getToken, id, body) => request(getToken, `/api/doctors/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
 export const setDoctorStatus = (getToken, id, status) => request(getToken, `/api/doctors/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
 export const listSpecialties = (getToken) => request(getToken, '/api/doctors/specialties')
+export const deleteDoctor = (getToken, id) => request(getToken, `/api/doctors/${id}`, { method: 'DELETE' })
