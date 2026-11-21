@@ -9,6 +9,7 @@ The application lets signed-in users maintain patient profiles and request denta
 | Area | Implemented behavior |
 | --- | --- |
 | Patient profiles | Personal details, contact information, guardians, emergency contacts, allergies, notes, preferences, and profile photos |
+| Doctor directory | Staff-only, searchable and paginated doctor profiles, specialty and license metadata, clinic assignments, and activation state |
 | Reservations | Five-step service, dentist, date/time, patient-detail, and confirmation flow |
 | Appointment tracking | Pending and approved requests, a pending edit countdown, cancellation, and archive views |
 | Staff approvals | Review all requests and approve or decline appointments |
@@ -22,6 +23,26 @@ The public `/services` route presents eight clinic services in a responsive cata
 The layout shows four cards per row on desktop, two on tablet, and one on narrow screens. It also includes a responsive hero, appointment call-to-action, and care-benefit strip. The hero illustration is stored in `client/src/assets/services/dental-services-hero.png`.
 
 There are no implemented treatment-plan, invoice, payment, AI-summary, live dentist-availability, or notification-delivery APIs. Prices are informational; no payment is collected. Photos are stored in PostgreSQL, not S3.
+
+## Doctors management
+
+Run `npm --prefix server run migrate:doctors` after the existing schema is installed. The migration adds doctors, specialties, clinic assignments, weekly availability, time off, and an optional `appointments.doctor_id` reference. License uniqueness is enforced per `license_jurisdiction`; deployments should use a jurisdiction value that matches their licensing authority. The migration seeds a default Main Clinic for the existing single-clinic installation.
+
+All endpoints require Clerk authentication. Directory and appointment reads are available to admins, superadmins, and secretaries. Doctor writes and schedule changes are restricted to admins and superadmins.
+
+| Method and path | Purpose |
+| --- | --- |
+| `GET /api/doctors?search=&specialtyId=&clinicId=&status=&page=1&limit=20` | Search and filter the directory; returns `items`, `pagination`, and counts |
+| `GET /api/doctors/:id` | Read a full doctor profile and clinic assignments |
+| `POST /api/doctors` | Create a profile; accepts `firstName`, `lastName`, `licenseNumber`, optional `licenseJurisdiction`, `clinicIds`, and profile fields |
+| `PATCH /api/doctors/:id` | Update profile fields |
+| `PATCH /api/doctors/:id/status` | Set `status` to `active` or `inactive` |
+| `GET /api/doctors/specialties` | List active specialties |
+| `GET /api/doctors/:id/appointments` | Return limited appointment scheduling fields (no medical issue or patient profile data) |
+| `GET /api/doctors/:id/availability` | Read recurring clinic intervals |
+| `PUT /api/doctors/:id/availability` | Replace intervals with `{ intervals: [{ clinicId, weekday, startTime, endTime }] }` |
+
+Availability uses local wall-clock times per clinic. Time off records are persisted for scheduling integrations. The application currently has no user-to-clinic membership model, so clinic authorization is role-based and clinic filtering uses explicit clinic IDs; tenant isolation requires introducing memberships before operating separate customer tenants.
 
 ## Read and regenerate this handbook
 

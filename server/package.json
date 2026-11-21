@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "migrate:billing": "node db/migrate-billing.js",
+    "migrate:doctors": "node db/migrate-doctors.js",
+    "seed:test-doctor": "node db/seed-test-doctor.js",
     "test:billing": "node tests/billing.test.js",
     "dev": "nodemon index.js",
     "start": "node index.js",

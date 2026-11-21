@@ -13,6 +13,7 @@ import UserRecordsPage from './pages/UserRecordsPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
 import ServicesPage from './pages/ServicesPage'
 import AboutPage from './pages/AboutPage'
+import DoctorsPage from './pages/DoctorsPage'
 
 function Footer() {
   return (
@@ -55,6 +56,8 @@ export default function App() {
             <Route path="/patients" element={<PatientsPage />} />
             <Route path="/patients/create" element={<PatientDetailsPage forceCreate />} />
             <Route path="/patients/:profileId" element={<PatientDetailsPage />} />
+            <Route path="/doctors" element={<DoctorsPage />} />
+            <Route path="/doctors/:doctorId" element={<DoctorsPage />} />
             <Route path="/secretary/appointments" element={<Navigate to="/booked" replace />} />
             <Route path="/users" element={<UserRecordsPage />} />
             <Route path="/db" element={<DatabasePage />} />

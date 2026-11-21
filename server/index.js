@@ -96,6 +96,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/records', require('./routes/records'));
 app.use('/api/services', require('./routes/services'));
 app.use('/api/billing', require('./routes/billing').createBillingRouter(require('./db'), require('./middleware/auth')));
+app.use('/api/doctors', require('./routes/doctors'));
 
 // Expose a simple authenticated endpoint that also syncs the Clerk user to our DB
 const { authenticate, syncUser } = require('./middleware/auth');
