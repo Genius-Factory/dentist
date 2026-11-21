@@ -23,6 +23,15 @@ test('service lifecycle preserves history and transfers atomically in PostgreSQL
       VALUES ('future','patient','source','dentist','Patient','Reason','low',30,CURRENT_DATE + 2,'10:00','approved'),
         ('past','patient','source','dentist','Patient','Reason','low',30,CURRENT_DATE - 2,'10:00','approved');
       INSERT INTO appointment_charges (appointment_id,amount,service_name,issued_date,created_by) VALUES ('future',100,'Original',CURRENT_DATE,'admin');`);
+    await db.query(`INSERT INTO doctors(first_name,last_name,user_id,license_number,service_ids)
+      VALUES ('Real','Doctor','dentist','REAL-1','["source","target","wrong"]');
+      INSERT INTO users(id,email,username) VALUES ('legacy','legacy@test.local','Legacy Staff');
+      INSERT INTO service_dentists VALUES ('source','legacy');
+      INSERT INTO doctors(first_name,last_name,license_number,status,service_ids)
+      VALUES ('Inactive','Doctor','INACTIVE-1','inactive','["source"]');`);
+    const { directory } = require('../lib/dentistDirectory');
+    const roster = await db.query(`SELECT id,name FROM (${directory}) p ORDER BY name`);
+    assert.deepEqual(roster.rows, [{ id: 'dentist', name: 'Real Doctor' }]);
     const migration = fs.readFileSync(path.join(__dirname, '../db/service-history.sql'), 'utf8');
     await db.query(migration); await db.query(migration);
     assert.equal((await serviceUsage(db, 'source')).upcoming, 1);

@@ -1,3 +1,4 @@
+import DentistProfile from '../components/DentistProfile'
 import { useEffect, useState } from 'react'
 import { useAuth } from '@clerk/clerk-react'
 import { Link } from 'react-router-dom'
@@ -107,7 +108,7 @@ export default function ServicesPage() {
       {selectedService && <div className="service-modal-backdrop" role="presentation" onMouseDown={() => setSelectedService(null)}><section className="service-modal" role="dialog" aria-modal="true" aria-labelledby="service-modal-title" onMouseDown={(event) => event.stopPropagation()}>
         <button type="button" className="service-modal-close" onClick={() => setSelectedService(null)} aria-label="Close service details"><X size={20} /></button>
         <img src={selectedService.image} alt={selectedService.imageAlt} />
-        <div className="service-modal-copy"><p className="section-label">{selectedService.category}</p><h2 id="service-modal-title">{selectedService.title}</h2><p>{selectedService.details}</p><div><span><Check size={17} /> {selectedService.duration}</span><strong>Starting from ${selectedService.price}</strong></div><Link to={`/reservation?serviceId=${encodeURIComponent(selectedService.id)}`} onClick={() => setSelectedService(null)}>Book this service <ChevronRight size={17} /></Link></div>
+        <div className="service-modal-copy"><p className="section-label">{selectedService.category}</p><h2 id="service-modal-title">{selectedService.title}</h2><p>{selectedService.details}</p>{selectedService.dentists?.map(doctor => <section key={doctor.id}><h3>{doctor.name}</h3><DentistProfile doctor={doctor} /></section>)}<div><span><Check size={17} /> {selectedService.duration}</span><strong>Starting from ${selectedService.price}</strong></div><Link to={`/reservation?serviceId=${encodeURIComponent(selectedService.id)}`} onClick={() => setSelectedService(null)}>Book this service <ChevronRight size={17} /></Link></div>
       </section></div>}
     </div>
   )

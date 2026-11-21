@@ -13,6 +13,7 @@ export default function ServiceCard({ service, onLearnMore, placeholderImage }) 
       <div className="service-card-content">
         <h3>{service.title}</h3>
         <p>{service.description}</p>
+        {service.dentists?.length > 0 && <p><strong>Dentists</strong> · {service.dentists.map(d => d.name).join(', ')}</p>}
         <div className="service-card-meta">
           <span><Clock3 size={16} aria-hidden="true" /> {service.duration}</span>
           <strong>{service.price === 0 ? 'Free' : `From $${service.price}`}</strong>
@@ -27,6 +28,7 @@ export default function ServiceCard({ service, onLearnMore, placeholderImage }) 
 
 ServiceCard.propTypes = {
   service: PropTypes.shape({
+    dentists: PropTypes.arrayOf(PropTypes.shape({ name: PropTypes.string })),
     title: PropTypes.string.isRequired,
     description: PropTypes.string.isRequired,
     duration: PropTypes.string.isRequired,

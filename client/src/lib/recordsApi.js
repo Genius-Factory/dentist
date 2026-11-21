@@ -51,6 +51,7 @@ export const getClinicSettings = (getToken) => request(getToken, '/api/records/s
 export const updateClinicSettings = (getToken, settings) => request(getToken, '/api/records/settings', { method: 'PUT', body: JSON.stringify(settings) })
 export const getAvailability = (getToken, { date, serviceId, dentistId, excludeId }) => request(getToken, `/api/records/availability?${new URLSearchParams({ date, serviceId, dentistId, ...(excludeId ? { excludeId } : {}) })}`)
 export const getUsers = (getToken) => request(getToken, '/api/users')
+export const getTeam = (getToken) => request(getToken, '/api/services/team')
 export const getServices = (getToken) => request(getToken, '/api/services')
 export const getServiceDentists = (getToken) => request(getToken, '/api/services/dentists')
 export const getServiceUsage = (getToken, id) => request(getToken, `/api/services/${encodeURIComponent(id)}/usage`)
