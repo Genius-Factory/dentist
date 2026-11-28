@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS specialties (
 );
 CREATE TABLE IF NOT EXISTS doctors (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id VARCHAR(255) UNIQUE REFERENCES users(id) ON DELETE SET NULL,
-  first_name VARCHAR(120) NOT NULL, last_name VARCHAR(120) NOT NULL, email VARCHAR(255), phone VARCHAR(100),
+  first_name VARCHAR(120) NOT NULL, last_name VARCHAR(120) NOT NULL, gender VARCHAR(10) CHECK (gender IS NULL OR gender IN ('male','female')), email VARCHAR(255), phone VARCHAR(100),
   profile_image_url TEXT NOT NULL DEFAULT '', license_number VARCHAR(160) NOT NULL, license_jurisdiction VARCHAR(160) NOT NULL DEFAULT 'default',
   specialty_id UUID REFERENCES specialties(id) ON DELETE SET NULL, years_of_experience INTEGER NOT NULL DEFAULT 0 CHECK (years_of_experience >= 0),
   bio TEXT NOT NULL DEFAULT '', status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active','inactive')),
